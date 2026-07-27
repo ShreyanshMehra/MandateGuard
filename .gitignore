@@ -1,0 +1,41 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node / React
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Editors and operating systems
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Runtime data and generated artifacts
+artifacts/
+tmp/
+*.log
+*.sqlite3
+*.db
+
+# Docker overrides
+docker-compose.override.yml

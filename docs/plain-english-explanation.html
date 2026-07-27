@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MandateGuard — Plain-English Explanation</title>
+  <style>
+    @page { size: A4; margin: 17mm 18mm 18mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #172033;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.48;
+    }
+    h2 {
+      color: #102f69;
+      font-size: 17pt;
+      line-height: 1.2;
+      margin: 20pt 0 7pt;
+      break-after: avoid;
+    }
+    h3 {
+      color: #234b85;
+      font-size: 12.5pt;
+      margin: 14pt 0 5pt;
+      break-after: avoid;
+    }
+    p { margin: 0 0 8pt; }
+    ul, ol { margin: 4pt 0 10pt 20pt; padding: 0; }
+    li { margin: 2.5pt 0; }
+    blockquote {
+      border-left: 4px solid #2f66c5;
+      background: #f2f6fd;
+      margin: 10pt 0;
+      padding: 9pt 12pt;
+      font-weight: 600;
+    }
+    pre {
+      background: #101827;
+      color: #eef4ff;
+      border-radius: 7px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9pt;
+      line-height: 1.45;
+      padding: 11pt;
+      white-space: pre-wrap;
+      break-inside: avoid;
+    }
+    code {
+      background: #edf2fa;
+      border-radius: 3px;
+      font-family: Consolas, "Courier New", monospace;
+      padding: 1px 4px;
+    }
+    .opening {
+      color: #334155;
+      font-size: 11.5pt;
+      margin-bottom: 13pt;
+    }
+    .locked {
+      border: 1px solid #c8d7ef;
+      background: #f8fbff;
+      border-radius: 8px;
+      padding: 9pt 13pt 4pt;
+    }
+  </style>
+</head>
+<body>
+  <p class="opening">All recommended decisions are now locked. Let’s rebuild your understanding from zero.</p>
+
+  <h2>1. What is an AI agent?</h2>
+
+  <p>A normal chatbot only answers questions.</p>
+
+  <p>An AI agent can take actions, such as:</p>
+
+  <ul>
+    <li>Refunding a card payment</li>
+    <li>Increasing a credit limit</li>
+    <li>Replacing a card</li>
+    <li>Booking a flight</li>
+    <li>Moving money</li>
+  </ul>
+
+  <p>That creates risk. A broken or manipulated agent could perform thousands of incorrect actions very quickly.</p>
+
+  <h2>2. What does the problem statement ask us to build?</h2>
+
+  <p>Imagine a bank has hundreds of AI agents. The bank needs a security system controlling them.</p>
+
+  <p>That system must answer:</p>
+
+  <ol>
+    <li>What is each agent allowed to do?</li>
+    <li>How much money can it affect?</li>
+    <li>How can one agent be stopped?</li>
+    <li>How can every agent be stopped during an emergency?</li>
+    <li>Can the bank later prove exactly what happened?</li>
+  </ol>
+
+  <p>This security system is the “Governance Layer for Financial Agents.”</p>
+
+  <p>A simple analogy is an office building:</p>
+
+  <ul>
+    <li>Employee ID card → agent identity</li>
+    <li>Doors they can enter → permissions</li>
+    <li>Company-card limit → spending limits</li>
+    <li>Security desk → operator dashboard</li>
+    <li>Deactivate badge → revoke one agent</li>
+    <li>Lock the whole building → fleet emergency stop</li>
+    <li>Security-camera history → action records</li>
+  </ul>
+
+  <h2>3. What Claude already designed</h2>
+
+  <p>The existing proposal contains:</p>
+
+  <ul>
+    <li>A central gate that approves or refuses agent actions</li>
+    <li>A rulebook describing what each agent may do</li>
+    <li>Daily spending limits</li>
+    <li>A button to stop one agent</li>
+    <li>A button to stop all agents</li>
+    <li>A history of decisions</li>
+    <li>An operator dashboard</li>
+    <li>A small simulated prototype</li>
+  </ul>
+
+  <p>This is a solid starting point. The story is clear and the scope is realistic.</p>
+
+  <p>The problem is that these are almost exactly the features AmEx already requested. They show good execution, but not enough original thinking to reliably beat other teams.</p>
+
+  <h2>4. Our upgraded idea</h2>
+
+  <p>Our temporary product name will be <strong>MandateGuard</strong>.</p>
+
+  <p>Its promise is:</p>
+
+  <blockquote>No AI agent can perform a financial action without receiving a one-time, tightly limited permission slip.</blockquote>
+
+  <p>The important improvement is that MandateGuard will not merely answer “yes” or “no.” It will control the complete journey from request to actual execution.</p>
+
+  <pre>AI agent → MandateGuard → One-time Action Permit → Mock bank
+                    ↕
+       Rules, budgets, approvals and emergency controls
+                    ↕
+              Operator dashboard</pre>
+
+  <p>The mock bank will reject agents that try to contact it directly.</p>
+
+  <h2>5. How one refund would work</h2>
+
+  <p>Suppose a refund agent requests a $100 refund.</p>
+
+  <h3>Step 1: Prove the agent’s identity</h3>
+
+  <p>MandateGuard verifies that this really is the refund agent—not another program pretending to be it.</p>
+
+  <h3>Step 2: Examine the request</h3>
+
+  <p>It checks:</p>
+
+  <ul>
+    <li>Is this agent allowed to issue refunds?</li>
+    <li>Is it allowed to access this customer?</li>
+    <li>Is $100 below its single-refund limit?</li>
+    <li>Has it already issued too many refunds today?</li>
+    <li>Are too many refunds happening right now?</li>
+    <li>Has this agent been stopped?</li>
+    <li>Is the whole fleet currently stopped?</li>
+  </ul>
+
+  <h3>Step 3: Choose one of three outcomes</h3>
+
+  <ul>
+    <li><code>ALLOW</code>: safe enough to execute automatically.</li>
+    <li><code>DENY</code>: clearly forbidden.</li>
+    <li><code>HOLD FOR APPROVAL</code>: legitimate, but risky enough to require a person.</li>
+  </ul>
+
+  <p>This third outcome is important. Banks do not want to reject every unusual but valid request.</p>
+
+  <h3>Step 4: Reserve the money</h3>
+
+  <p>Before approving the refund, MandateGuard temporarily reserves $100 from the agent’s available limit.</p>
+
+  <p>This works like a temporary card authorization.</p>
+
+  <p>Why?</p>
+
+  <p>If twenty refund requests arrive simultaneously, they must not all see the same available balance and collectively exceed the limit.</p>
+
+  <h3>Step 5: Create an Action Permit</h3>
+
+  <p>MandateGuard produces a digitally sealed, one-use permission containing:</p>
+
+  <ul>
+    <li>Which agent may use it</li>
+    <li>Exact customer and action</li>
+    <li>Exact amount</li>
+    <li>Which rules approved it</li>
+    <li>When it expires</li>
+    <li>A unique number preventing reuse</li>
+  </ul>
+
+  <p>The agent cannot change a $100 permit into a $1,000 refund.</p>
+
+  <h3>Step 6: Execute the refund</h3>
+
+  <p>The mock bank accepts the request only if the permit is valid.</p>
+
+  <p>It rejects:</p>
+
+  <ul>
+    <li>Direct agent requests</li>
+    <li>Expired permits</li>
+    <li>Modified permits</li>
+    <li>Previously used permits</li>
+    <li>Permits issued before an emergency stop</li>
+  </ul>
+
+  <h3>Step 7: Record the result</h3>
+
+  <p>If the refund succeeds, the reserved $100 becomes actual used budget.</p>
+
+  <p>If it definitely fails, the $100 is released.</p>
+
+  <p>The system then creates an <strong>Execution Receipt</strong> proving what was requested, why it was approved and what the bank actually did.</p>
+
+  <h2>6. What “dynamic limits” means</h2>
+
+  <p>The existing proposal only has fixed daily limits. That is not genuinely dynamic.</p>
+
+  <p>Our system will combine several limits:</p>
+
+  <ul>
+    <li>Maximum amount per refund</li>
+    <li>Maximum amount per customer</li>
+    <li>Maximum amount per agent</li>
+    <li>Maximum amount across all agents</li>
+    <li>Maximum number of refunds per minute</li>
+    <li>Temporary limits during elevated-risk situations</li>
+  </ul>
+
+  <p>Example:</p>
+
+  <p>An agent is allowed refunds below $1,000. A malicious agent sends fifty refunds of $900 each.</p>
+
+  <p>A basic system sees fifty individually valid refunds.</p>
+
+  <p>MandateGuard sees the rapidly growing total exposure and automatically:</p>
+
+  <ul>
+    <li>Reduces the effective limit</li>
+    <li>Places new requests on hold</li>
+    <li>Or stops the affected agent</li>
+  </ul>
+
+  <p>That is much more compelling than merely blocking one obviously oversized transaction.</p>
+
+  <h2>7. What the audit feature really does</h2>
+
+  <p>The current prototype links records using cryptographic fingerprints. That can reveal simple editing, but it is not completely unchangeable.</p>
+
+  <p>We will honestly describe it as <strong>tamper-evident</strong>, not “immutable.”</p>
+
+  <p>Each receipt will include:</p>
+
+  <ul>
+    <li>Authenticated agent identity</li>
+    <li>Original request</li>
+    <li>Decision and reason</li>
+    <li>Exact rule version</li>
+    <li>Budget reservation</li>
+    <li>Human approval, if any</li>
+    <li>Actual bank result</li>
+    <li>Time and unique request number</li>
+  </ul>
+
+  <p>We will periodically create a separately protected checkpoint. If someone later edits, deletes or rearranges records, verification will fail.</p>
+
+  <h2>8. Our second major innovation: test rules before activating them</h2>
+
+  <p>A bank operator might create a bad rule that accidentally blocks every refund.</p>
+
+  <p>Before activating a new rule, MandateGuard will replay previous requests in simulation and show something like:</p>
+
+  <blockquote>This new rule would deny 37 additional requests, including 12 previously successful customer refunds.</blockquote>
+
+  <p>The operator can inspect the impact before publishing the rule.</p>
+
+  <p>This is called “policy shadow replay,” but in plain language it means:</p>
+
+  <blockquote>Test tomorrow’s rules against yesterday’s traffic before they can cause damage.</blockquote>
+
+  <h2>9. The prototype judges will see</h2>
+
+  <p>We will build one area—refunds—properly rather than pretending to support every possible banking action.</p>
+
+  <p>The demonstration will show:</p>
+
+  <ol>
+    <li>A normal refund successfully changes the mock bank balance.</li>
+    <li>A larger refund waits for human approval.</li>
+    <li>A rogue agent attempts an unauthorized action and gets denied.</li>
+    <li>The rogue agent contacts the bank directly and gets rejected.</li>
+    <li>Many simultaneous refunds attempt to exceed the shared limit.</li>
+    <li>MandateGuard prevents the total limit from being exceeded.</li>
+    <li>Risk mode automatically tightens limits.</li>
+    <li>The emergency button stops all new financial actions.</li>
+    <li>An old permit is reused and rejected.</li>
+    <li>An execution receipt is opened and verified.</li>
+    <li>A proposed new rule is tested against historical activity.</li>
+  </ol>
+
+  <p>This will be scripted and repeatable. We will not wait for random events during the presentation.</p>
+
+  <h2>10. What each technology will do</h2>
+
+  <ul>
+    <li><strong>React:</strong> the operator-facing website.</li>
+    <li><strong>FastAPI:</strong> the main MandateGuard service.</li>
+    <li><strong>OPA:</strong> checks configurable rules.</li>
+    <li><strong>PostgreSQL:</strong> safely stores budgets, requests and receipts.</li>
+    <li><strong>Docker Compose:</strong> starts the complete prototype with one command.</li>
+    <li><strong>Mock bank:</strong> safely demonstrates real consequences without touching an actual bank.</li>
+  </ul>
+
+  <p>No real customer data or banking connection is required.</p>
+
+  <h2>11. What we will deliberately avoid</h2>
+
+  <p>We will not initially add:</p>
+
+  <ul>
+    <li>Machine-learning anomaly detection</li>
+    <li>Blockchain</li>
+    <li>A real bank integration</li>
+    <li>Complicated cloud infrastructure</li>
+    <li>Multiple deeply implemented banking workflows</li>
+    <li>An LLM inside the safety decision</li>
+  </ul>
+
+  <p>The safety decision should be predictable and testable—not creative.</p>
+
+  <p>We may add one AI-driven agent later, but only after MandateGuard is reliable.</p>
+
+  <h2>12. Why this can become a winning project</h2>
+
+  <p>It will demonstrate more than a dashboard:</p>
+
+  <ul>
+    <li>Financial understanding</li>
+    <li>Security thinking</li>
+    <li>Reliable handling of simultaneous requests</li>
+    <li>Clear human approvals</li>
+    <li>Measurable emergency response</li>
+    <li>Honest limitations</li>
+    <li>A visually understandable demonstration</li>
+    <li>A product that complements existing bank systems</li>
+  </ul>
+
+  <p>That combination is also excellent PPI material because you can discuss product decisions, system design, security, testing and business value during interviews.</p>
+
+  <h2>Locked decisions</h2>
+
+  <div class="locked">
+    <ul>
+      <li>Keep the Governance problem statement.</li>
+      <li>Build MandateGuard as an action-executing broker.</li>
+      <li>Use one-time Action Permits and Execution Receipts.</li>
+      <li>Support <code>ALLOW</code>, <code>DENY</code> and <code>HOLD FOR APPROVAL</code>.</li>
+      <li>Implement genuinely dynamic, shared limits.</li>
+      <li>Build refunds deeply.</li>
+      <li>Add rule shadow-replay.</li>
+      <li>Use FastAPI, OPA, PostgreSQL and React.</li>
+      <li>Use a deterministic demonstration.</li>
+      <li>Record a short Round-1 video.</li>
+      <li>Skip ML until the core is correct.</li>
+    </ul>
+  </div>
+
+  <p style="margin-top: 12pt;">The next step is to convert this explanation into a precise one-page product specification before writing code.</p>
+</body>
+</html>
