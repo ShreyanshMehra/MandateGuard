@@ -162,6 +162,7 @@ class ExecutionReceipt(Base):
     signature_b64: Mapped[str] = mapped_column(Text)
     key_id: Mapped[str] = mapped_column(Text)
     schema_version: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
 
 
 class ControlAction(Base):

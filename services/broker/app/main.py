@@ -5,11 +5,13 @@ import uuid
 import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from .config import OPA_URL
+from .config import DASHBOARD_ORIGIN, OPA_URL
 from .db import engine
+from .routes_admin_views import router as admin_views_router
 from .routes_controls import router as controls_router
 from .routes_refunds import router as refunds_router
 
@@ -18,6 +20,16 @@ SERVICE_NAME = "broker"
 app = FastAPI(title="MandateGuard Broker")
 app.include_router(refunds_router)
 app.include_router(controls_router)
+app.include_router(admin_views_router)
+
+# The Milestone 6 dashboard calls the broker directly from the browser.
+# X-Operator-Token is a custom header, so it must be explicitly allowed.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[DASHBOARD_ORIGIN],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(HTTPException)

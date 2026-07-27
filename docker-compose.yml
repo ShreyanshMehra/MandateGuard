@@ -54,6 +54,7 @@ services:
       BANK_RESULT_PUBLIC_KEY_B64: ${BANK_RESULT_PUBLIC_KEY_B64:-ZL8O0Hf9/VmFthp2cu+wP/vgrNOUXmicT/dZMMrHN+g=}
       PERMIT_TTL_SECONDS: "60"
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:-dev_operator_token_change_me}
+      DASHBOARD_ORIGIN: http://localhost:5173
       AUDIT_CHECKPOINT_KEY_PATH: /secrets/dev/audit-checkpoint-signing__audit-checkpoint-signing_dev-2026-07.pem
       AUDIT_CHECKPOINT_KEY_ID: audit-checkpoint-signing:dev-2026-07
     volumes:

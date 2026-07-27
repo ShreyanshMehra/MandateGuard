@@ -138,6 +138,7 @@ def _process_execution(session: Session, action: ActionRequest, agent: Agent, go
                 signature_b64=outcome.signature_b64,
                 key_id=outcome.key_id,
                 schema_version="1.0",
+                created_at=datetime.now(timezone.utc),
             )
         )
         append_audit_event(

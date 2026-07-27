@@ -6,7 +6,7 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 5 — Governance workflows**
+**Milestone 6 — Dashboard and demo**
 
 Status: complete, pending final commit
 
@@ -53,13 +53,19 @@ Status: complete, pending final commit
 - [x] `services/broker/app/replay.py` + a new `input.override_config` field in `policies/refund_policy.rego` (falls back to the live bundled config when absent): read-only candidate-policy shadow replay that re-evaluates each historical action's exact stored OPA input against a candidate config using the real Rego rules, writing only to dedicated `policy_replay_runs`/`policy_replay_results` tables -- never touching `action_requests` or creating reservations, permits, refunds or live audit events.
 - [x] `tests/test_governance_workflows.py` (8 tests, all passing): epoch bump on revoke/restore, held-action approve-to-execution and deny, stale-context rejection after a control change mid-approval, fleet halt denying new requests and resume restoring them, audit checkpoint tamper detection via a direct SQL edit to a historical event, and read-only replay that changes a held action's decision under a permissive candidate config while leaving the live action's state untouched.
 
+- [x] `services/broker/app/routes_admin_views.py`: read-only operator endpoints backing the dashboard -- `GET /api/v1/admin/governance`, `/agents`, `/actions` (list + per-action detail with reservation/permit/receipt/audit-trail), `/exposure` (fleet + per-agent + top-10-customer usage today), `/receipts` (list + per-receipt signature verification). All gated by `X-Operator-Token`, same as the Milestone 5 mutation endpoints.
+- [x] CORS opened on the broker (`DASHBOARD_ORIGIN`, defaults to `http://localhost:5173`) so the dashboard can call it directly from the browser; `X-Operator-Token` explicitly allowed as a custom header.
+- [x] `frontend/src/`: a dependency-free React dashboard (no router or UI kit -- plain fetch + local state, matching the Milestone 2 scaffold's minimalism) with the seven required screens as separate components (`FleetControls`, `LiveFeed`, `Exposure`, `HeldApprovals`, `Agents`, `PolicyReplay`, `Receipts`), an operator-token input persisted to `localStorage`, and polling refresh on the live-data panels. `tsc -b` and `vite build` both pass cleanly.
+- [x] `scripts/run_scenarios.py`: all eleven deterministic demo scenarios from HANDOFF.md's Milestone 6 list, run end-to-end against the live stack after an automatic dev-state reset, each printing PASS/FAIL and its key metric. Two consecutive full runs (reset + all eleven) produced matching key results (e.g. the concurrent burst allowed exactly the same number of successes both times), confirming reproducibility.
+- [x] Fixed a bug this milestone's testing surfaced: `ExecutionReceipt` was missing `created_at` from its ORM mapping (present in the migration, not the model), which crashed every real bank execution once the new receipts-list endpoint's ordering touched the column; fixed by mapping it and setting it explicitly when a receipt is created.
+
 ## In progress
 
-- [ ] Nothing in progress; ready to start Milestone 6.
+- [ ] Nothing in progress; ready to start Milestone 7.
 
 ## Next actions
 
-1. Milestone 6: React dashboard (fleet status/emergency controls, live action feed, exposure views, held approvals, agent details, policy replay comparison, receipt search/export/verification) and the deterministic demo scenario runner.
+1. Milestone 7: automate the P0 verification tests (concurrent shared-cap correctness, concurrent idempotency, direct bypass, permit mutation/expiry/replay, revoke/halt races, unknown-outcome reconciliation, approval recheck, OPA/bank failure behavior, receipt completeness, audit tamper detection, shadow-replay isolation/determinism) and measure/save the latency and coverage numbers HANDOFF.md section 11 asks for.
 2. Continue committing and pushing to `origin/main` at each milestone boundary.
 
 ## Current blockers
@@ -104,3 +110,9 @@ Status: complete, pending final commit
 | 2026-07-27 | `alembic upgrade head` via `migrate` Compose service (migration 0005) | Pass — control/approval/checkpoint/replay tables created |
 | 2026-07-27 | `pytest tests/test_governance_workflows.py -v` against the live stack, after reset | Pass — `8 passed` |
 | 2026-07-27 | `pytest tests/` (all three suites) against the live stack, after reset | Pass — `30 passed, 1 skipped` (the skip is the concurrency-headroom-dependent approval test, which needs the fleet budget headroom that `test_budget_execution.py`'s concurrency burst consumes earlier in the same run -- it passes `8/8` when `test_governance_workflows.py` is run alone after a reset) |
+| 2026-07-27 | `tsc -b && vite build` in `frontend/` | Pass — clean type-check, `159.51 kB` JS bundle |
+| 2026-07-27 | Direct HTTP checks of every new `/api/v1/admin/*` view endpoint the dashboard calls | Pass — governance, agents, actions (list + detail), exposure, receipts (list + verify) all returned the expected shape |
+| 2026-07-27 | CORS preflight (`OPTIONS` with `Origin: http://localhost:5173`) against the broker | Pass — `access-control-allow-origin` and `x-operator-token` both present |
+| 2026-07-27 | `pytest tests/` after the `ExecutionReceipt.created_at` mapping fix | Pass — `30 passed, 1 skipped` (same as above, confirming no regression) |
+| 2026-07-27 | `python scripts/run_scenarios.py` (all 11 scenarios), twice in a row from a reset | Pass both runs — `11/11 scenarios passed`, matching key metrics each time (e.g. concurrent burst: `32` fired, `22` allowed, `22` succeeded, both runs) |
+| 2026-07-27 | Dashboard browser walkthrough | **Not performed** — no browser automation tool was available in this environment. Verified instead via clean TypeScript build, clean production build, and direct HTTP calls to every endpoint each screen depends on, plus a CORS preflight check. Recommend a manual click-through before the Milestone 8 demo rehearsal. |
