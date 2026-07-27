@@ -64,17 +64,19 @@ Temporary product name: **MandateGuard**.
 - Architecture decision records
 - Local toolchain audit
 - Docker engine startup verification
-
-### In progress
-
-- Milestone 2: runnable service scaffold
+- Runnable Docker Compose scaffold with health/readiness checks (Milestone 2)
 
 The OPA/Rego rule engine is implemented under `policies/`. It was independently reviewed and verified with OPA 1.17 using strict compilation, formatting validation and `PASS: 22/22` policy tests.
 
+Milestone 2 (runnable service scaffold) is complete: `docker-compose.yml` wires `postgres`, `opa`, `broker`, `mock-bank`, `agent-simulator` and `frontend`; every backend service exposes `/health` and `/ready`; the full stack builds and reaches a healthy state. See `STATUS.md` for verification output.
+
+### In progress
+
+- Milestone 3: database, identity, policy and action intake
+
 ### Not started
 
-- Backend and mock-bank service code
-- PostgreSQL schema and migrations
+- PostgreSQL schema and migrations (roles/schemas exist; tables do not)
 - Agent/operator authentication
 - Atomic budgets
 - Signed permits and bank-signed outcomes
@@ -237,7 +239,7 @@ There are eight durable milestones. Each milestone ends with tests, a `STATUS.md
 | # | Milestone | Status | Acceptance gate |
 |---:|---|---|---|
 | 1 | Product contract, threats and architecture | Complete | Contracts reviewed, contradictions removed, initial commit created |
-| 2 | Runnable service scaffold | In progress | All containers build; health/readiness checks pass |
+| 2 | Runnable service scaffold | Complete | All containers build; health/readiness checks pass |
 | 3 | Database, identity, policy and action intake | Pending | Valid requests persist; forged/default-denied cases fail safely |
 | 4 | Atomic budgets, permits and mock-bank execution | Pending | Concurrency has zero overshoot; direct/replay/mutation attempts fail |
 | 5 | Approvals, controls, receipts and shadow replay | Pending | All governance workflows work and are audited |

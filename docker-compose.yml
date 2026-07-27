@@ -1,0 +1,106 @@
+name: mandateguard
+
+services:
+  postgres:
+    image: postgres:17.10-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mandateguard_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_admin_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-mandateguard}
+      BROKER_DB_PASSWORD: ${BROKER_DB_PASSWORD:-dev_broker_change_me}
+      BANK_DB_PASSWORD: ${BANK_DB_PASSWORD:-dev_bank_change_me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  opa:
+    image: openpolicyagent/opa:1.17.0-static
+    command: ["run", "--server", "--addr=:8181", "--log-level=info", "/policies"]
+    volumes:
+      - ./policies:/policies:ro
+    ports:
+      - "8181:8181"
+
+  broker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      args:
+        SERVICE_DIR: services/broker
+    environment:
+      DATABASE_URL: postgresql+psycopg://mandateguard_broker:${BROKER_DB_PASSWORD:-dev_broker_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
+      OPA_URL: http://opa:8181
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opa:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8000/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mock-bank:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      args:
+        SERVICE_DIR: services/mock-bank
+    environment:
+      DATABASE_URL: postgresql+psycopg://mandateguard_bank:${BANK_DB_PASSWORD:-dev_bank_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8000/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Intentionally not published to the host: the broker is the only
+    # caller allowed to reach the mock bank, per docs/ARCHITECTURE.md.
+
+  agent-simulator:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      args:
+        SERVICE_DIR: services/agent-simulator
+    environment:
+      BROKER_URL: http://broker:8000
+    ports:
+      - "8100:8000"
+    depends_on:
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8000/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_BROKER_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
