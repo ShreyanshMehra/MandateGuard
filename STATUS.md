@@ -6,9 +6,9 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 7 — Security, concurrency and performance verification**
+**Milestone 8 — Deck, video and final packaging**
 
-Status: complete, pending final commit
+Status: engineering/documentation deliverables complete, pending final commit. Video recording, live rehearsal and actual submission are human actions this file cannot perform -- see "Not started" below.
 
 ## Completed
 
@@ -61,19 +61,32 @@ Status: complete, pending final commit
 - [x] Dashboard browser walkthrough: performed after Milestone 6 landed, using a throwaway Playwright script kept entirely outside the repo (per explicit scope choice at the time). All seven tabs screenshotted and rendered correctly with real live data; interactive round-trips exercised through the actual browser UI -- policy replay produced a correct real diff, clicking "Verify" on a receipt showed a green VALID pill, and approving a held action via the UI executed it and removed it from the list. Zero browser console/page errors across all runs. A post-check `pytest tests/` after reset still passed (30 passed, 1 skipped at the time), confirming the live UI mutation didn't corrupt state.
 - [x] `tests/test_verification.py` (9 tests, all passing): concurrent identical requests sharing one `Idempotency-Key` settle to exactly one action and one receipt; an expired permit is rejected the same way a tampered one is; stopping the `opa`/`mock-bank` containers proves the broker fails closed (503, `POLICY_SERVICE_UNAVAILABLE`/`BANK_CONTEXT_UNAVAILABLE`) and recovers cleanly afterward; the fleet-halt commit-to-denial bound is measured directly; a revoke fired concurrently with a request burst denies every request issued after the revoke's 200 response; a successful execution's receipt is checked field-by-field against the data model, and confirmed absent for denied/held actions; the mock bank's per-request-id refund lookup (the manual-reconciliation building block) is proven stable and non-mutating on repeated reads.
 - [x] `scripts/measure_performance.py`: measures and saves (not just prints) OPA policy-call and end-to-end latency percentiles, the fleet-halt commit-to-denial bound, shadow-replay duration, receipt coverage and a fresh zero-overshoot confirmation to `docs/verification/PERFORMANCE.md`, reproducible by re-running against a reset stack.
+- [x] Fresh-machine Docker verification: `docker compose down -v` (removed the named Postgres volume) plus `docker rmi` of all five project-built images, then a full `docker compose build` + `docker compose up -d` from nothing but the repo checkout. All six containers reached healthy/running; `pytest tests/` (38 passed, 2 skipped -- same documented headroom-skip pattern), `scripts/run_scenarios.py` (11/11) and `scripts/measure_performance.py` all passed cleanly against the freshly built, freshly migrated, freshly seeded stack. Scope note: base images (`python`, `node`, `postgres`, `opa`) were already present in the local Docker image cache, so this did not re-exercise a first-time image pull over the network -- everything downstream of that (build, migrate, seed, run) was verified from zero project state.
+- [x] `README.md` rewritten end to end: accurate architecture summary and diagram, fresh-machine quickstart, demo/test/measurement instructions, project structure, honest limitations -- replacing the stale Milestone-2-era scaffold description.
+- [x] `docs/PROJECT_DESCRIPTION.md`: the mandatory project description (problem, what was built, why it matters, what was measured vs. claimed, honest scope).
+- [x] `docs/DECK.md` (portable markdown source) and `docs/deck.html` (self-contained, presentable HTML version, published as a Claude artifact) -- a 12-slide deck plus appendix: problem, what was built, architecture, permit lifecycle, concurrency correctness, governance controls, audit/replay, measured results table, the eleven-scenario demo, honest limitations, close, and an appendix (tech stack, selected invariants, doc index).
+- [x] `docs/VIDEO_SCRIPT.md`: a shot-by-shot, timestamped storyboard for the 90-120 second walkthrough video, built around the same eleven scenarios and mapped to exact dashboard tabs/terminal commands so it's rehearsable and reproducible, not improvised.
+- [x] `docs/DEMO_REHEARSAL.md`: a live-demo checklist (setup, a dashboard-first narrated sequence, a terminal-only fallback via `scripts/run_scenarios.py`, and known rough edges to narrate around rather than hide).
 
 ## In progress
 
-- [ ] Nothing in progress; ready to start Milestone 8.
+- [ ] Nothing in progress on the engineering/documentation side.
+
+## Not started (human actions, outside what this file can automate)
+
+- [ ] Record the actual 90-120 second walkthrough video (script is ready: `docs/VIDEO_SCRIPT.md`).
+- [ ] Live-rehearse the demo at least once against the checklist (`docs/DEMO_REHEARSAL.md`) before presenting.
+- [ ] Export/finalize the deck for submission (`docs/deck.html` can be presented directly from a browser, printed to PDF, or its content in `docs/DECK.md` pasted into PowerPoint/Keynote/Google Slides).
+- [ ] Submit early per HANDOFF.md's guidance, then treat later submissions as verified-fix-only.
 
 ## Next actions
 
-1. Milestone 8: clean reset/seed command verification on a fresh machine, final README and architecture diagram, project description, deck, walkthrough video, demo rehearsal.
+1. Record the walkthrough video from `docs/VIDEO_SCRIPT.md`, do at least one live rehearsal from `docs/DEMO_REHEARSAL.md`, then submit.
 2. Continue committing and pushing to `origin/main` at each milestone boundary.
 
 ## Current blockers
 
-- No active implementation blocker.
+- No active implementation blocker. Remaining Milestone 8 items (video recording, live rehearsal, submission) are human actions outside what an automated session can perform.
 
 ## Locked decisions
 
@@ -123,3 +136,7 @@ Status: complete, pending final commit
 | 2026-07-27 | `pytest tests/` (all four suites) against the live stack, after reset | Pass — `38 passed, 2 skipped` (same documented shared-fleet-headroom skip pattern as Milestone 5/6 runs) |
 | 2026-07-27 | `python scripts/measure_performance.py` against the live stack, after reset | Pass — results written to `docs/verification/PERFORMANCE.md`: policy p50/p95/p99 ≈ 50/52/58ms, end-to-end p50/p95/p99 ≈ 80/97/151ms (n=40), halt commit-to-denial bound max 83ms over 5 repeats, shadow-replay 477ms for 40 evaluated actions, receipt coverage 40/40 (100%), concurrent burst zero-overshoot confirmed (24/24, never more) |
 | 2026-07-27 | `python scripts/run_scenarios.py` (all 11 scenarios) re-run after this milestone's changes | Pass — `11/11 scenarios passed`, no regression from the new tests/measurement script |
+| 2026-07-27 | Fresh-machine verification: `docker compose down -v` + `docker rmi` of all 5 project images, then `docker compose build` + `docker compose up -d` from the repo checkout alone | Pass — all 6 containers reached healthy/running; broker and agent-simulator `/ready` both `true`; frontend HTTP 200 |
+| 2026-07-27 | `pytest tests/` against the freshly rebuilt stack | Pass — `38 passed, 2 skipped` |
+| 2026-07-27 | `python scripts/run_scenarios.py` against the freshly rebuilt stack | Pass — `11/11 scenarios passed` |
+| 2026-07-27 | `python scripts/measure_performance.py` against the freshly rebuilt stack | Pass — results re-saved to `docs/verification/PERFORMANCE.md`; receipt coverage 40/40 (100%), zero-overshoot burst 24/24 |

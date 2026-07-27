@@ -84,13 +84,17 @@ Milestone 6 (dashboard and demo) is complete: the seven required screens are imp
 
 Milestone 7 (verification) is complete: `tests/test_verification.py` (9 tests, all passing) covers the P0 gaps not already exercised by the Milestone 3-6 suites -- concurrent identical requests sharing one `Idempotency-Key` settle to exactly one action and one receipt; a permit with an `exp` in the past is rejected by the mock bank the same way a tampered one is; stopping the `opa` and `mock-bank` containers mid-test proves the broker fails closed (503, `POLICY_SERVICE_UNAVAILABLE`/`BANK_CONTEXT_UNAVAILABLE`) with no partial `action_requests` row possible (the code raises before the row is ever inserted) and recovers cleanly once the container is back; a fleet halt's commit-to-denial bound is measured directly (the very next request after the halt call returns is always denied); a revoke fired concurrently with a request burst is proven to deny every request issued after the revoke's 200 response, with no window where a post-revoke request can still be allowed; a successful execution's receipt is checked field-by-field against `docs/DATA_MODEL.md`'s execution-receipt shape, and confirmed absent for denied/held actions; and the mock bank's per-`request_id` refund lookup -- the manual-reconciliation building block for `UNKNOWN` outcomes, per the Milestone 4 scope note -- is proven to be a stable, non-mutating read. `scripts/measure_performance.py` measures and saves (never prints-only) the numbers HANDOFF.md section 11 asks for -- OPA policy-call and end-to-end request latency percentiles (p50/p95/p99 over 40 samples), the fleet-halt commit-to-denial bound (5 repeats), shadow-replay duration, receipt coverage (successful actions with a verifiable receipt), and a fresh zero-budget-overshoot confirmation under a concurrent burst -- to `docs/verification/PERFORMANCE.md`, reproducible by re-running the script against a reset stack. Scope reductions, documented and deliberate: true mid-flight "bank goes down between payment-fetch and execution" `UNKNOWN`-outcome injection was not built, since both calls share one endpoint and one container in this environment (per the Milestone 4 scope note, there is no automatic reconciliation loop to test against in the first place -- reconciliation is manual, and the test above verifies the safe primitive that manual path depends on) -- a chaos-injection endpoint on the mock bank would close this gap and is a reasonable Milestone 8+ follow-up, not required by this milestone's acceptance gate.
 
+Milestone 8 (deck, video and final packaging) engineering/documentation deliverables are complete: `README.md` was rewritten end to end (accurate architecture summary and diagram, fresh-machine quickstart, demo/test/measurement commands, project structure, honest limitations). `docs/PROJECT_DESCRIPTION.md` is the mandatory project description. `docs/DECK.md` (portable markdown) and `docs/deck.html` (self-contained HTML, publishable directly or printable to PDF) are a twelve-slide-plus-appendix deck covering the problem, what was built, architecture, the permit lifecycle, concurrency correctness, governance controls, audit/replay, the measured-results table, the eleven-scenario demo, honest limitations, close, and reference material. `docs/VIDEO_SCRIPT.md` is a shot-by-shot, timestamped storyboard for the 90-120 second walkthrough, mapped to exact dashboard tabs and terminal commands. `docs/DEMO_REHEARSAL.md` is a live-demo checklist with a dashboard-first sequence and a terminal-only fallback. A true fresh-machine verification was run: `docker compose down -v` (removed the named Postgres volume) plus `docker rmi` of all five project-built images, then a full rebuild and bring-up from the repo checkout alone -- all six containers reached healthy/running, and `pytest tests/` (38 passed, 2 skipped), `scripts/run_scenarios.py` (11/11) and `scripts/measure_performance.py` all passed cleanly against that freshly built, freshly migrated, freshly seeded stack. Scope note: the local Docker image cache already had the base images (`python`, `node`, `postgres`, `opa`), so this did not exercise a first-time network pull of those -- everything downstream of that was verified from zero project state. What remains is human action this session cannot perform: recording the actual video, a live rehearsal, and submission itself.
+
 ### In progress
 
-- Nothing in progress; ready to start Milestone 8.
+- Nothing in progress on the engineering/documentation side; remaining Milestone 8 work (video recording, live rehearsal, submission) is human action.
 
 ### Not started
 
-- Presentation and video
+- Recording the walkthrough video (script ready)
+- Live demo rehearsal
+- Submission
 
 ## 5. Locked decisions
 
@@ -249,7 +253,7 @@ There are eight durable milestones. Each milestone ends with tests, a `STATUS.md
 | 5 | Approvals, controls, receipts and shadow replay | Complete | All governance workflows work and are audited |
 | 6 | Dashboard and deterministic demo | Complete | Full demo runs from UI without terminal use |
 | 7 | Security, concurrency and performance verification | Complete | P0 test matrix passes and measured results are saved |
-| 8 | Deck, video and final packaging | Pending | Fresh-machine runbook, deck and video are submission-ready |
+| 8 | Deck, video and final packaging | Docs/deck/rehearsal-plan complete; video/rehearsal/submission are human actions | Fresh-machine runbook, deck and video are submission-ready |
 
 ## 11. Exact future work
 

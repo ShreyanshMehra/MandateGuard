@@ -1,0 +1,719 @@
+<title>MandateGuard — Pitch Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @font-face {
+    font-family: "system-serif";
+    src: local("Iowan Old Style"), local("Palatino Linotype"), local("Georgia");
+  }
+
+  :root {
+    --bg: #f3f4f6;
+    --bg-elevated: #ffffff;
+    --bg-panel: #eceef2;
+    --ink: #12151f;
+    --muted: #5b6478;
+    --accent: #0f9488;
+    --accent-ink: #ffffff;
+    --gold: #a6741a;
+    --allow: #059669;
+    --deny: #dc2626;
+    --hold: #b45309;
+    --line: rgba(18, 21, 31, 0.12);
+    --line-strong: rgba(18, 21, 31, 0.22);
+    --shadow: 0 1px 2px rgba(18, 21, 31, 0.06), 0 12px 32px -16px rgba(18, 21, 31, 0.18);
+
+    --font-display: "system-serif", ui-serif, Georgia, "Times New Roman", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "SF Mono", "Consolas", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0f1a;
+      --bg-elevated: #101827;
+      --bg-panel: #0d1421;
+      --ink: #e7e9f0;
+      --muted: #8892a6;
+      --accent: #4fd1c5;
+      --accent-ink: #06211d;
+      --gold: #e8b958;
+      --allow: #34d399;
+      --deny: #f87171;
+      --hold: #fbbf24;
+      --line: rgba(231, 233, 240, 0.12);
+      --line-strong: rgba(231, 233, 240, 0.22);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 20px 48px -20px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0f1a; --bg-elevated: #101827; --bg-panel: #0d1421;
+    --ink: #e7e9f0; --muted: #8892a6; --accent: #4fd1c5; --accent-ink: #06211d;
+    --gold: #e8b958; --allow: #34d399; --deny: #f87171; --hold: #fbbf24;
+    --line: rgba(231, 233, 240, 0.12); --line-strong: rgba(231, 233, 240, 0.22);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 20px 48px -20px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f4f6; --bg-elevated: #ffffff; --bg-panel: #eceef2;
+    --ink: #12151f; --muted: #5b6478; --accent: #0f9488; --accent-ink: #ffffff;
+    --gold: #a6741a; --allow: #059669; --deny: #dc2626; --hold: #b45309;
+    --line: rgba(18, 21, 31, 0.12); --line-strong: rgba(18, 21, 31, 0.22);
+    --shadow: 0 1px 2px rgba(18, 21, 31, 0.06), 0 12px 32px -16px rgba(18, 21, 31, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  .chrome {
+    position: fixed;
+    inset: 0 0 auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px clamp(20px, 4vw, 48px);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    z-index: 20;
+    pointer-events: none;
+    mix-blend-mode: normal;
+  }
+  .chrome span.dot { color: var(--accent); }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0; height: 3px;
+    background: var(--accent);
+    z-index: 30;
+    width: 0%;
+    transition: width 0.15s ease-out;
+  }
+
+  .deck { position: relative; }
+
+  section.slide {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 96px clamp(20px, 6vw, 96px) 72px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  section.slide.appendix { min-height: auto; padding-top: 64px; padding-bottom: 64px; }
+
+  .slide-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+  .slide-inner.wide { max-width: 1040px; }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .kicker::before {
+    content: "";
+    width: 22px; height: 1px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-wrap: balance;
+    margin: 0 0 0.4em;
+    color: var(--ink);
+  }
+  h1 { font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.05; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); line-height: 1.12; }
+  h3 { font-size: 1.2rem; font-weight: 600; font-family: var(--font-body); }
+
+  p.lead {
+    font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+    color: var(--muted);
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+  p { color: var(--ink); }
+  p.muted { color: var(--muted); }
+
+  ul.points, ol.points {
+    list-style: none;
+    margin: 28px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 16px;
+  }
+  ul.points li, ol.points li {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: baseline;
+    font-size: 1.02rem;
+    max-width: 68ch;
+  }
+  ul.points li::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    align-self: center;
+    justify-self: center;
+  }
+  ol.points { counter-reset: step; }
+  ol.points li::before {
+    counter-increment: step;
+    content: counter(step);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ul.points li strong, ol.points li strong { color: var(--ink); }
+
+  .subpoints { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .subpoints li { color: var(--muted); font-size: 0.94rem; padding-left: 2px; }
+  .subpoints li::before { content: "– "; color: var(--muted); }
+
+  pre.diagram {
+    font-family: var(--font-mono);
+    font-size: clamp(0.72rem, 1.4vw, 0.92rem);
+    line-height: 1.5;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px clamp(16px, 3vw, 32px);
+    overflow-x: auto;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    margin: 28px 0 0;
+  }
+  pre.diagram .accent { color: var(--accent); }
+  pre.diagram .muted2 { color: var(--muted); }
+
+  .flow {
+    margin-top: 32px;
+    display: grid;
+    gap: 10px;
+  }
+  .flow-step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .flow-step .n {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 0.95rem;
+  }
+  .flow-step .t { font-weight: 600; }
+  .flow-step .d { color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-top: 30px;
+  }
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .card .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  .tag.allow { color: var(--allow); background: color-mix(in srgb, var(--allow) 16%, transparent); }
+  .tag.hold { color: var(--hold); background: color-mix(in srgb, var(--hold) 16%, transparent); }
+  .tag.deny { color: var(--deny); background: color-mix(in srgb, var(--deny) 16%, transparent); }
+  .tag.accent { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .card h3 { margin-bottom: 6px; }
+  .card p { color: var(--muted); font-size: 0.92rem; margin: 0; }
+
+  table.metrics {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  table.metrics th, table.metrics td {
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  table.metrics th {
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: var(--bg-panel);
+  }
+  table.metrics tr:last-child td { border-bottom: none; }
+  table.metrics td.value { color: var(--accent); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+
+  .scenario-strip {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .scenario-strip span {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink);
+  }
+  .scenario-strip span::before { content: "✓ "; color: var(--allow); }
+
+  .limits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .limits-grid p {
+    margin: 0;
+    padding: 14px 18px;
+    background: var(--bg-panel);
+    border-left: 3px solid var(--line-strong);
+    border-radius: 4px;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+
+  .close-line {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    color: var(--ink);
+    margin-top: 20px;
+    text-wrap: balance;
+    max-width: 60ch;
+  }
+
+  .num-hero {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 12vw, 9rem);
+    line-height: 0.9;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  /* --- title slide --- */
+  .title-slide { justify-content: center; align-items: center; text-align: center; }
+  .title-slide .slide-inner { display: flex; flex-direction: column; align-items: center; }
+  canvas#chain { display: block; margin: 0 auto 36px; max-width: 100%; }
+  .title-slide h1 { font-size: clamp(2.8rem, 7vw, 5.2rem); }
+  .title-slide .promise {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+    color: var(--muted);
+    max-width: 54ch;
+    margin-top: 22px;
+    text-wrap: balance;
+  }
+  .title-slide .meta {
+    margin-top: 40px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .appendix-head {
+    border-top: 2px solid var(--line-strong);
+    padding-top: 40px;
+    margin-bottom: 8px;
+  }
+  .appendix-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+    margin-top: 24px;
+  }
+  .appendix-grid h3 { margin-bottom: 10px; font-family: var(--font-mono); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+  .appendix-grid p, .appendix-grid li { color: var(--muted); font-size: 0.9rem; }
+  .appendix-grid ul { margin: 0; padding-left: 18px; }
+  .appendix-grid ul li { margin-bottom: 6px; }
+  code.inline {
+    font-family: var(--font-mono);
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.86em;
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  @media print {
+    .chrome, .progress { display: none; }
+    section.slide { min-height: 100vh; page-break-after: always; border: none; }
+    body { background: #fff; color: #111; }
+  }
+</style>
+
+<div class="progress" id="progress"></div>
+<div class="chrome"><span><span class="dot">●</span> MandateGuard — Governance Layer for Financial Agents</span><span id="slide-counter">01 / 13</span></div>
+
+<div class="deck">
+
+  <section class="slide title-slide" data-slide>
+    <div class="slide-inner">
+      <canvas id="chain" width="640" height="120" aria-hidden="true"></canvas>
+      <div class="kicker" style="justify-content:center;">American Express CodeStreet 2026</div>
+      <h1>MandateGuard</h1>
+      <p class="promise">"No AI agent can perform a financial action without bounded authority, reserved financial exposure, and verifiable proof of execution."</p>
+      <div class="meta">A governance layer for financial AI agents</div>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">01 · The problem</div>
+      <h2>A rulebook isn't governance if the agent can ignore it</h2>
+      <p class="lead">Banks are starting to let AI agents take real financial actions. Most "AI governance" today stops at a policy document or a voluntary allow/deny API.</p>
+      <ul class="points">
+        <li><span>Nothing stops a misconfigured or compromised agent from <strong>calling the bank directly</strong>, bypassing the policy layer entirely.</span></li>
+        <li><span>Nothing stops a burst of requests from <strong>exceeding a limit under concurrent load</strong>.</span></li>
+        <li><span>Nothing stops an old authorization from being <strong>replayed or mutated</strong>.</span></li>
+        <li><span>Nothing guarantees a <strong>verifiable record</strong> of what actually happened.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">02 · What we built</div>
+      <h2>One action, built all the way down</h2>
+      <p class="lead">MandateGuard is a real, enforced action broker for <code class="inline">refund_payment</code> — not an advisory service an agent can route around.</p>
+      <div class="cards">
+        <div class="card"><span class="tag accent">Identity</span><h3>Signed agent tokens</h3><p>Short-lived, verified — never self-declared.</p></div>
+        <div class="card"><span class="tag hold">Policy</span><h3>OPA / Rego</h3><p>Versioned rules return ALLOW / DENY / HOLD_FOR_APPROVAL.</p></div>
+        <div class="card"><span class="tag allow">Budgets</span><h3>Atomic reservation</h3><p>Customer, agent and fleet caps reserve together or not at all.</p></div>
+        <div class="card"><span class="tag accent">Permits</span><h3>One-use, signed</h3><p>Ed25519, 60s TTL, parameter-bound to the exact request.</p></div>
+        <div class="card"><span class="tag accent">Execution</span><h3>Verified, not trusted</h3><p>The bank signs its own result; the broker checks it.</p></div>
+        <div class="card"><span class="tag hold">Receipts</span><h3>Every terminal action</h3><p>Signed, hash-verifiable proof of what happened.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner wide">
+      <div class="kicker">03 · Architecture</div>
+      <h2>Enforcement, not advice</h2>
+      <pre class="diagram">Agent simulator
+      |  <span class="accent">signed identity + refund request</span>
+      v
+<span class="accent">MandateGuard broker</span> ---------------------- Operator dashboard
+      |          |                                  |
+      |          +---- PostgreSQL ------------------+
+      |            <span class="muted2">(separate broker / bank schemas)</span>
+      |
+      +-- structured policy input --&gt; <span class="accent">OPA</span>
+      |&lt;---- allow / deny / hold ----+
+      |
+      +-- service identity + permit --&gt; <span class="accent">Mock bank</span>
+      |&lt;------ signed result -----------+</pre>
+      <p class="muted" style="margin-top:16px;">The mock bank is Docker-internal only — even an agent on the same network can't reach it. Only the broker holds the service credential.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">04 · The permit lifecycle</div>
+      <h2>Seven steps, no shortcuts</h2>
+      <ol class="points">
+        <li><span>Verify the agent's signed token.</span></li>
+        <li><span>Fetch trusted customer / refundable-amount data from the bank — never from the agent.</span></li>
+        <li><span>Ask OPA for a decision against the live policy.</span></li>
+        <li><span>On ALLOW, reserve customer + agent + fleet budget in one locked transaction.</span></li>
+        <li><span>Issue a 60-second, single-use, parameter-bound Ed25519 permit.</span></li>
+        <li><span>Call the bank; verify its signed result before trusting "success."</span></li>
+        <li><span>Commit or release the reservation; write a signed execution receipt.</span></li>
+      </ol>
+      <p class="muted" style="margin-top:20px;">An expired, tampered, or replayed permit is rejected — proven directly against the bank's execution endpoint, bypassing the broker, the way an attacker would.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">05 · Concurrency you can't cheat</div>
+      <h2>Twenty requests, ten-request cap — exactly ten, never eleven</h2>
+      <ul class="points">
+        <li><span>Budget scopes lock in <strong>deterministic sorted order</strong> and are checked before any reservation is written.</span></li>
+        <li><span><strong>Measured, not simulated</strong> — a real concurrent burst against live budget headroom lands exactly at the cap, every run.</span></li>
+        <li><span>Same guarantee for idempotency: ten concurrent requests sharing one key settle to exactly one action, one receipt.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">06 · Governance that holds</div>
+      <h2>Approval can never override a hard control</h2>
+      <div class="flow">
+        <div class="flow-step"><div class="n">01</div><div><div class="t">Fleet halt</div><div class="d">One operator action denies every new request — commit-to-denial bound in the tens of milliseconds.</div></div></div>
+        <div class="flow-step"><div class="n">02</div><div><div class="t">Agent revoke</div><div class="d">Immediate for new requests; a monotonic epoch invalidates anything issued before it.</div></div></div>
+        <div class="flow-step"><div class="n">03</div><div><div class="t">Held-action approval</div><div class="d">Re-runs live policy and re-checks epochs before executing — a stale context is rejected, not silently approved.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">07 · Audit &amp; safe policy testing</div>
+      <h2>Tamper-evident, and reversible before it's live</h2>
+      <ul class="points">
+        <li><span>Every state change appends to a <strong>hash-chained audit log</strong> per action.</span></li>
+        <li><span>Signed checkpoints let an auditor detect a single edited or deleted historical event — demonstrated with a direct SQL tamper.</span></li>
+        <li><span><strong>Shadow replay</strong> tests a candidate policy against real historical requests before it goes live, with a hard guarantee it can never touch a live budget, permit, or refund.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner wide">
+      <div class="kicker">08 · Measured results</div>
+      <h2>Every number here is saved and reproducible</h2>
+      <div class="table-wrap">
+        <table class="metrics">
+          <thead><tr><th>Metric</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Policy (OPA) latency</td><td class="value">p50 50ms · p95 52ms · p99 58ms</td></tr>
+            <tr><td>End-to-end request latency</td><td class="value">p50 80ms · p95 97ms · p99 151ms</td></tr>
+            <tr><td>Fleet-halt commit-to-denial bound</td><td class="value">max 83ms (5 repeats)</td></tr>
+            <tr><td>Receipt coverage</td><td class="value">100% of successful executions</td></tr>
+            <tr><td>Budget overshoot under concurrency</td><td class="value">zero, every run</td></tr>
+            <tr><td>Shadow-replay duration</td><td class="value">477ms / 40 evaluated actions</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:14px;">Reproduce with <code class="inline">python scripts/measure_performance.py</code> — see <code class="inline">docs/verification/PERFORMANCE.md</code>.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner wide">
+      <div class="kicker">09 · The deterministic demo</div>
+      <h2>Eleven scenarios, same result every reset</h2>
+      <p class="lead">Runnable end to end from the dashboard or <code class="inline">scripts/run_scenarios.py</code> — no terminal required for the judge.</p>
+      <div class="scenario-strip">
+        <span>Normal refund</span><span>Held refund + approval</span><span>Permission denial</span>
+        <span>Direct-bank bypass rejection</span><span>Concurrent split-refund burst</span>
+        <span>Elevated-risk tightening</span><span>Fleet halt under load</span>
+        <span>Duplicate idempotency</span><span>Permit replay</span>
+        <span>Audit tamper detection</span><span>Candidate policy replay</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">10 · Honest limitations</div>
+      <h2>What this is, and isn't, yet</h2>
+      <div class="limits-grid">
+        <p>One action (<code class="inline">refund_payment</code>), one currency (USD), one local PostgreSQL instance.</p>
+        <p>Prototype dev keys and shared-secret service credentials — not hardware-backed identity or mTLS.</p>
+        <p>No guarantee of reversing a refund the bank already applied.</p>
+        <p>Tamper-evident checkpoints, not physically immutable storage.</p>
+        <p><code class="inline">UNKNOWN</code> bank outcomes reconcile manually, by design — never retried blindly.</p>
+        <p>No fraud detection, no prompt-injection-prevention claim, no real LLM agent yet.</p>
+      </div>
+      <p class="muted" style="margin-top:22px;">We built the deterministic safety core first. Everything above is a next step once the core is trusted — not a prerequisite for it.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-slide>
+    <div class="slide-inner">
+      <div class="kicker">11 · Close</div>
+      <h2>We didn't ask the agent to behave.</h2>
+      <p class="close-line">We made an unauthorized, unbounded, or unverifiable financial action <em>physically impossible</em> — and measured it, end to end.</p>
+      <p class="lead" style="margin-top:28px;">That's the bar a bank needs cleared before an agent touches real money.</p>
+    </div>
+  </section>
+
+  <section class="slide appendix" data-slide>
+    <div class="slide-inner wide">
+      <div class="kicker">Appendix</div>
+      <h2 class="appendix-head">Reference material</h2>
+      <div class="appendix-grid">
+        <div>
+          <h3>Tech stack</h3>
+          <ul>
+            <li>FastAPI — broker, mock bank, agent simulator</li>
+            <li>OPA / Rego — policy engine</li>
+            <li>PostgreSQL — role-separated broker + bank schemas</li>
+            <li>React + TypeScript — operator dashboard</li>
+            <li>Docker Compose — local orchestration</li>
+            <li>Ed25519 — permits, bank results, audit checkpoints</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Selected invariants</h3>
+          <ul>
+            <li>No bank refund without broker identity and a valid permit.</li>
+            <li>A permit is consumed at most once.</li>
+            <li>Customer, agent and fleet budgets reserve together or none reserve.</li>
+            <li>Approval never overrides a hard control.</li>
+            <li>No DB transaction stays open across an OPA or bank call.</li>
+            <li>Shadow replay cannot change live state.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Where to look</h3>
+          <ul>
+            <li><code class="inline">README.md</code> — quickstart, structure</li>
+            <li><code class="inline">HANDOFF.md</code> / <code class="inline">STATUS.md</code> — full build + verification log</li>
+            <li><code class="inline">docs/ARCHITECTURE.md</code>, <code class="inline">DATA_MODEL.md</code>, <code class="inline">API_CONTRACT.md</code>, <code class="inline">THREAT_MODEL.md</code></li>
+            <li><code class="inline">docs/verification/PERFORMANCE.md</code> — measured numbers</li>
+            <li><code class="inline">tests/</code> — 40 acceptance tests, four suites, live stack</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll('[data-slide]'));
+    var counter = document.getElementById('slide-counter');
+    var progress = document.getElementById('progress');
+    var total = slides.length;
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function update() {
+      var scrollTop = window.scrollY;
+      var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progress.style.width = pct + '%';
+
+      var mid = scrollTop + window.innerHeight * 0.4;
+      var current = 1;
+      for (var i = 0; i < slides.length; i++) {
+        if (slides[i].offsetTop <= mid) current = i + 1;
+      }
+      counter.textContent = pad(current) + ' / ' + pad(total);
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var canvas = document.getElementById('chain');
+    if (canvas && canvas.getContext) {
+      var ctx = canvas.getContext('2d');
+      var W = canvas.width, H = canvas.height;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.scale(dpr, dpr);
+
+      var nodes = 7;
+      var spacing = W / (nodes + 1);
+      var t = 0;
+
+      function accentColor() {
+        var root = document.documentElement;
+        return getComputedStyle(root).getPropertyValue('--accent').trim() || '#4fd1c5';
+      }
+      function lineColor() {
+        var root = document.documentElement;
+        return getComputedStyle(root).getPropertyValue('--line-strong').trim() || 'rgba(255,255,255,0.2)';
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        var accent = accentColor();
+        var line = lineColor();
+        var midY = H / 2;
+
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 1; i <= nodes; i++) {
+          var x = spacing * i;
+          var y = midY + Math.sin(t * 0.02 + i) * 6;
+          if (i === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        for (var j = 1; j <= nodes; j++) {
+          var xx = spacing * j;
+          var yy = midY + Math.sin(t * 0.02 + j) * 6;
+          var pulse = reduceMotion ? 0 : (Math.sin(t * 0.05 + j * 1.3) + 1) / 2;
+          var r = 4 + pulse * 2.5;
+          ctx.beginPath();
+          ctx.arc(xx, yy, r, 0, Math.PI * 2);
+          ctx.fillStyle = accent;
+          ctx.globalAlpha = 0.55 + pulse * 0.45;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          ctx.beginPath();
+          ctx.arc(xx, yy, r + 5, 0, Math.PI * 2);
+          ctx.strokeStyle = accent;
+          ctx.globalAlpha = 0.25;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        if (!reduceMotion) { t++; requestAnimationFrame(draw); }
+      }
+      draw();
+    }
+  })();
+</script>
