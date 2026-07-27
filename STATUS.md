@@ -6,7 +6,7 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 1 — Product contract, threat model and architecture**
+**Milestone 2 — Runnable service scaffold**
 
 Status: in progress
 
@@ -20,19 +20,20 @@ Status: in progress
 - [x] Local toolchain checked: Git, Python, Node, Docker CLI and Docker Compose are installed.
 - [x] Docker Desktop started and its engine is reachable.
 - [x] Independent architecture and data/API reviews completed.
+- [x] Milestone 1 contracts reviewed and committed as `c48a99b`.
+- [x] Self-contained `HANDOFF.md` created with all remaining milestones and resume instructions.
 
 ## In progress
 
-- [x] Freeze the MVP product contract and safety invariants.
-- [x] Freeze the threat model and failure behavior.
-- [x] Confirm API, data and trust-boundary design.
+- [ ] Independently review and rerun the delivered OPA policy tests.
+- [ ] Create the Docker Compose scaffold and service health endpoints.
+- [ ] Verify all empty services are healthy and connected.
 
 ## Next actions
 
-1. Review and finalize the architecture documents.
+1. Review and test the OPA policy work under `policies/`.
 2. Create the Docker Compose scaffold and service health endpoints.
-3. Start Docker Desktop and verify the empty stack.
-4. Commit Milestone 1 after its acceptance checks pass.
+3. Verify and commit Milestone 2 after the empty stack is healthy.
 
 ## Current blockers
 
