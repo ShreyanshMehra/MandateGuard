@@ -6,7 +6,7 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 6 — Dashboard and demo**
+**Milestone 7 — Security, concurrency and performance verification**
 
 Status: complete, pending final commit
 
@@ -58,14 +58,17 @@ Status: complete, pending final commit
 - [x] `frontend/src/`: a dependency-free React dashboard (no router or UI kit -- plain fetch + local state, matching the Milestone 2 scaffold's minimalism) with the seven required screens as separate components (`FleetControls`, `LiveFeed`, `Exposure`, `HeldApprovals`, `Agents`, `PolicyReplay`, `Receipts`), an operator-token input persisted to `localStorage`, and polling refresh on the live-data panels. `tsc -b` and `vite build` both pass cleanly.
 - [x] `scripts/run_scenarios.py`: all eleven deterministic demo scenarios from HANDOFF.md's Milestone 6 list, run end-to-end against the live stack after an automatic dev-state reset, each printing PASS/FAIL and its key metric. Two consecutive full runs (reset + all eleven) produced matching key results (e.g. the concurrent burst allowed exactly the same number of successes both times), confirming reproducibility.
 - [x] Fixed a bug this milestone's testing surfaced: `ExecutionReceipt` was missing `created_at` from its ORM mapping (present in the migration, not the model), which crashed every real bank execution once the new receipts-list endpoint's ordering touched the column; fixed by mapping it and setting it explicitly when a receipt is created.
+- [x] Dashboard browser walkthrough: performed after Milestone 6 landed, using a throwaway Playwright script kept entirely outside the repo (per explicit scope choice at the time). All seven tabs screenshotted and rendered correctly with real live data; interactive round-trips exercised through the actual browser UI -- policy replay produced a correct real diff, clicking "Verify" on a receipt showed a green VALID pill, and approving a held action via the UI executed it and removed it from the list. Zero browser console/page errors across all runs. A post-check `pytest tests/` after reset still passed (30 passed, 1 skipped at the time), confirming the live UI mutation didn't corrupt state.
+- [x] `tests/test_verification.py` (9 tests, all passing): concurrent identical requests sharing one `Idempotency-Key` settle to exactly one action and one receipt; an expired permit is rejected the same way a tampered one is; stopping the `opa`/`mock-bank` containers proves the broker fails closed (503, `POLICY_SERVICE_UNAVAILABLE`/`BANK_CONTEXT_UNAVAILABLE`) and recovers cleanly afterward; the fleet-halt commit-to-denial bound is measured directly; a revoke fired concurrently with a request burst denies every request issued after the revoke's 200 response; a successful execution's receipt is checked field-by-field against the data model, and confirmed absent for denied/held actions; the mock bank's per-request-id refund lookup (the manual-reconciliation building block) is proven stable and non-mutating on repeated reads.
+- [x] `scripts/measure_performance.py`: measures and saves (not just prints) OPA policy-call and end-to-end latency percentiles, the fleet-halt commit-to-denial bound, shadow-replay duration, receipt coverage and a fresh zero-overshoot confirmation to `docs/verification/PERFORMANCE.md`, reproducible by re-running against a reset stack.
 
 ## In progress
 
-- [ ] Nothing in progress; ready to start Milestone 7.
+- [ ] Nothing in progress; ready to start Milestone 8.
 
 ## Next actions
 
-1. Milestone 7: automate the P0 verification tests (concurrent shared-cap correctness, concurrent idempotency, direct bypass, permit mutation/expiry/replay, revoke/halt races, unknown-outcome reconciliation, approval recheck, OPA/bank failure behavior, receipt completeness, audit tamper detection, shadow-replay isolation/determinism) and measure/save the latency and coverage numbers HANDOFF.md section 11 asks for.
+1. Milestone 8: clean reset/seed command verification on a fresh machine, final README and architecture diagram, project description, deck, walkthrough video, demo rehearsal.
 2. Continue committing and pushing to `origin/main` at each milestone boundary.
 
 ## Current blockers
@@ -115,4 +118,8 @@ Status: complete, pending final commit
 | 2026-07-27 | CORS preflight (`OPTIONS` with `Origin: http://localhost:5173`) against the broker | Pass — `access-control-allow-origin` and `x-operator-token` both present |
 | 2026-07-27 | `pytest tests/` after the `ExecutionReceipt.created_at` mapping fix | Pass — `30 passed, 1 skipped` (same as above, confirming no regression) |
 | 2026-07-27 | `python scripts/run_scenarios.py` (all 11 scenarios), twice in a row from a reset | Pass both runs — `11/11 scenarios passed`, matching key metrics each time (e.g. concurrent burst: `32` fired, `22` allowed, `22` succeeded, both runs) |
-| 2026-07-27 | Dashboard browser walkthrough | **Not performed** — no browser automation tool was available in this environment. Verified instead via clean TypeScript build, clean production build, and direct HTTP calls to every endpoint each screen depends on, plus a CORS preflight check. Recommend a manual click-through before the Milestone 8 demo rehearsal. |
+| 2026-07-27 | Dashboard browser walkthrough | Pass — throwaway Playwright script (kept outside the repo) screenshotted all 7 tabs against live data and drove real interactive round-trips (policy replay, receipt verify, held-action approve); zero console errors; `pytest tests/` still passed after the live-mutating interaction |
+| 2026-07-27 | `pytest tests/test_verification.py -v` standalone, after reset | Pass — `9 passed` |
+| 2026-07-27 | `pytest tests/` (all four suites) against the live stack, after reset | Pass — `38 passed, 2 skipped` (same documented shared-fleet-headroom skip pattern as Milestone 5/6 runs) |
+| 2026-07-27 | `python scripts/measure_performance.py` against the live stack, after reset | Pass — results written to `docs/verification/PERFORMANCE.md`: policy p50/p95/p99 ≈ 50/52/58ms, end-to-end p50/p95/p99 ≈ 80/97/151ms (n=40), halt commit-to-denial bound max 83ms over 5 repeats, shadow-replay 477ms for 40 evaluated actions, receipt coverage 40/40 (100%), concurrent burst zero-overshoot confirmed (24/24, never more) |
+| 2026-07-27 | `python scripts/run_scenarios.py` (all 11 scenarios) re-run after this milestone's changes | Pass — `11/11 scenarios passed`, no regression from the new tests/measurement script |
