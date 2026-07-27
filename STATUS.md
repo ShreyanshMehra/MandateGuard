@@ -25,14 +25,14 @@ Status: in progress
 
 ## In progress
 
-- [ ] Independently review and rerun the delivered OPA policy tests.
+- [x] Independently review and rerun the delivered OPA policy tests.
 - [ ] Create the Docker Compose scaffold and service health endpoints.
 - [ ] Verify all empty services are healthy and connected.
 
 ## Next actions
 
-1. Review and test the OPA policy work under `policies/`.
-2. Create the Docker Compose scaffold and service health endpoints.
+1. Create the Docker Compose scaffold and service health endpoints.
+2. Integrate the verified OPA policy container.
 3. Verify and commit Milestone 2 after the empty stack is healthy.
 
 ## Current blockers
@@ -59,3 +59,4 @@ Status: in progress
 | 2026-07-27 | Workspace exists and opens in VS Code | Pass |
 | 2026-07-27 | Git 2.49, Python 3.12, Node 22, Docker 28 and Compose 2.34 available | Pass |
 | 2026-07-27 | Docker engine reachable | Pass — Docker Engine 28.0.4 |
+| 2026-07-27 | OPA strict check, format check and policy tests | Pass — OPA 1.17, `PASS: 22/22` |

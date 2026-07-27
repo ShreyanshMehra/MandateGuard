@@ -68,14 +68,8 @@ Temporary product name: **MandateGuard**.
 ### In progress
 
 - Milestone 2: runnable service scaffold
-- OPA/Rego rule engine and rule tests may be under subagent implementation
 
-Before assuming the OPA work is complete:
-
-1. Inspect `policies/`.
-2. Read any subagent report if available.
-3. Run `opa test` through the pinned OPA container.
-4. Review every rule and test before committing.
+The OPA/Rego rule engine is implemented under `policies/`. It was independently reviewed and verified with OPA 1.17 using strict compilation, formatting validation and `PASS: 22/22` policy tests.
 
 ### Not started
 

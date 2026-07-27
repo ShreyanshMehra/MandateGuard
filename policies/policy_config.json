@@ -1,0 +1,61 @@
+{
+  "mandateguard": {
+    "config": {
+      "schema_version": "1.0",
+      "policy_version": "refund-governance-v1.0.0",
+      "supported_action": "refund_payment",
+      "supported_currency": "USD",
+      "approval_role": "REFUND_APPROVER",
+      "fleet_budget_scope": "refund-fleet",
+      "risk_modes": {
+        "NORMAL": {
+          "approval_threshold_minor": 25000,
+          "hard_max_minor": 100000
+        },
+        "ELEVATED": {
+          "approval_threshold_minor": 10000,
+          "hard_max_minor": 50000
+        }
+      },
+      "agents": {
+        "refund-agent-v1": {
+          "enabled": true,
+          "allowed_actions": [
+            "refund_payment"
+          ],
+          "customer_scopes": [
+            "customer-demo-001",
+            "customer-demo-002"
+          ]
+        },
+        "rogue-refund-agent-v1": {
+          "enabled": true,
+          "allowed_actions": [
+            "refund_payment"
+          ],
+          "customer_scopes": [
+            "*"
+          ]
+        },
+        "travel-agent-v1": {
+          "enabled": true,
+          "allowed_actions": [
+            "travel_rebook"
+          ],
+          "customer_scopes": [
+            "*"
+          ]
+        },
+        "disabled-refund-agent-v1": {
+          "enabled": false,
+          "allowed_actions": [
+            "refund_payment"
+          ],
+          "customer_scopes": [
+            "*"
+          ]
+        }
+      }
+    }
+  }
+}
