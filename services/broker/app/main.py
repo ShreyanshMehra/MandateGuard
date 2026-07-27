@@ -10,12 +10,14 @@ from sqlalchemy import text
 
 from .config import OPA_URL
 from .db import engine
+from .routes_controls import router as controls_router
 from .routes_refunds import router as refunds_router
 
 SERVICE_NAME = "broker"
 
 app = FastAPI(title="MandateGuard Broker")
 app.include_router(refunds_router)
+app.include_router(controls_router)
 
 
 @app.exception_handler(HTTPException)

@@ -19,7 +19,9 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .config import MAX_AGENT_TOKEN_TTL_SECONDS
+import hmac
+
+from .config import MAX_AGENT_TOKEN_TTL_SECONDS, OPERATOR_TOKEN
 from .models import Agent, AgentCredential
 
 
@@ -98,3 +100,22 @@ def verify_agent_token(token: str, session: Session) -> Agent:
         raise _unauthorized("Token lifetime exceeds the maximum allowed for agent identity.")
 
     return agent
+
+
+def require_operator(operator_token: str | None) -> str:
+    """Dev-only operator authentication: a shared bearer secret, mirroring the
+    broker/bank service-token pattern. Real operator login (email/password,
+    per docs/DATA_MODEL.md `operator_users`) is part of the Milestone 6
+    dashboard; this is a stand-in so governance endpoints are still gated."""
+    if not OPERATOR_TOKEN or not operator_token or not hmac.compare_digest(operator_token, OPERATOR_TOKEN):
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "OPERATOR_TOKEN_INVALID",
+                    "message": "Missing or invalid operator token.",
+                    "correlation_id": str(uuid.uuid4()),
+                }
+            },
+        )
+    return "operator"

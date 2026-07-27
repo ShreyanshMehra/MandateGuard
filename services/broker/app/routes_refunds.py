@@ -406,3 +406,15 @@ def get_payment_balance(payment_id: str) -> dict:
     if payment is None:
         raise api_error(404, "PAYMENT_NOT_FOUND", "No payment with that ID.")
     return payment
+
+
+@router.get("/internal/v1/agent-by-subject/{token_subject}")
+def get_agent_by_subject(token_subject: str, session: Session = Depends(get_session)) -> dict:
+    """Dev/test introspection only: the public API never exposes an agent's
+    internal UUID or epoch (there is no agent-facing use for it). Milestone 5's
+    governance tests need it to call the operator revoke/restore endpoints,
+    which are keyed by UUID per docs/DATA_MODEL.md."""
+    agent = session.query(Agent).filter(Agent.token_subject == token_subject).one_or_none()
+    if agent is None:
+        raise api_error(404, "AGENT_NOT_FOUND", "No agent with that token subject.")
+    return {"agent_id": str(agent.id), "status": agent.status, "epoch": agent.epoch}

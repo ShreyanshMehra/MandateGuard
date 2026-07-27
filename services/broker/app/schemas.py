@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -14,3 +16,22 @@ class ActionResponse(BaseModel):
     decision: str | None
     reason_code: str | None
     public_explanation: str | None
+
+
+class ControlRequest(BaseModel):
+    reason: str = Field(min_length=1)
+
+
+class RiskModeRequest(BaseModel):
+    mode: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
+class ApprovalRequest(BaseModel):
+    reason: str | None = None
+
+
+class ReplayRequest(BaseModel):
+    candidate_config: dict
+    from_time: datetime | None = None
+    to_time: datetime | None = None

@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Date, ForeignKey, Integer, Text, TIMESTAMP
+from sqlalchemy import BigInteger, Boolean, Date, ForeignKey, Integer, Text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -10,6 +10,7 @@ class Base(DeclarativeBase):
     pass
 
 
+AgentStatus = ENUM("ACTIVE", "REVOKED", name="agent_status", schema="broker", create_type=False)
 ActionState = ENUM(
     "RECEIVED", "DENIED", "HELD", "BUDGET_RESERVED", "PERMIT_ISSUED",
     "EXECUTING", "SUCCEEDED", "FAILED", "UNKNOWN",
@@ -24,6 +25,12 @@ BudgetReservationState = ENUM(
     name="budget_reservation_state", schema="broker", create_type=False,
 )
 PermitStatus = ENUM("ISSUED", "CONSUMED", "CANCELLED", "EXPIRED", name="permit_status", schema="broker", create_type=False)
+ControlActionType = ENUM(
+    "REVOKE_AGENT", "RESTORE_AGENT", "HALT", "RESUME", "SET_RISK_MODE",
+    name="control_action_type", schema="broker", create_type=False,
+)
+ApprovalDecision = ENUM("APPROVED", "DENIED", name="approval_decision", schema="broker", create_type=False)
+ReplayRunStatus = ENUM("COMPLETED", "FAILED", name="replay_run_status", schema="broker", create_type=False)
 
 
 class Agent(Base):
@@ -33,7 +40,8 @@ class Agent(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     token_subject: Mapped[str] = mapped_column(Text, unique=True)
     display_name: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(AgentStatus)
+    status_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     epoch: Mapped[int] = mapped_column(BigInteger)
 
 
@@ -154,3 +162,83 @@ class ExecutionReceipt(Base):
     signature_b64: Mapped[str] = mapped_column(Text)
     key_id: Mapped[str] = mapped_column(Text)
     schema_version: Mapped[str] = mapped_column(Text)
+
+
+class ControlAction(Base):
+    __tablename__ = "control_actions"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    action_type: Mapped[str] = mapped_column(ControlActionType)
+    target: Mapped[str | None] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, unique=True)
+    reason: Mapped[str] = mapped_column(Text)
+    actor: Mapped[str] = mapped_column(Text)
+    before_snapshot: Mapped[dict] = mapped_column(JSONB)
+    after_snapshot: Mapped[dict] = mapped_column(JSONB)
+
+
+class Approval(Base):
+    __tablename__ = "approvals"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    action_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broker.action_requests.id"), unique=True)
+    approver: Mapped[str] = mapped_column(Text)
+    decision: Mapped[str] = mapped_column(ApprovalDecision)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, unique=True)
+
+
+class AuditCheckpoint(Base):
+    __tablename__ = "audit_checkpoints"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    manifest: Mapped[dict] = mapped_column(JSONB)
+    manifest_hash: Mapped[str] = mapped_column(Text)
+    signature_b64: Mapped[str] = mapped_column(Text)
+    key_id: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class AuditCheckpointItem(Base):
+    __tablename__ = "audit_checkpoint_items"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    checkpoint_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broker.audit_checkpoints.id"))
+    stream_id: Mapped[str] = mapped_column(Text)
+    last_sequence: Mapped[int] = mapped_column(BigInteger)
+    last_event_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class PolicyReplayRun(Base):
+    __tablename__ = "policy_replay_runs"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    candidate_config: Mapped[dict] = mapped_column(JSONB)
+    baseline_policy_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("broker.policy_versions.id"), nullable=True
+    )
+    from_time: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+    to_time: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(ReplayRunStatus)
+    summary: Mapped[dict] = mapped_column(JSONB)
+    created_by: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class PolicyReplayResult(Base):
+    __tablename__ = "policy_replay_results"
+    __table_args__ = {"schema": "broker"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broker.policy_replay_runs.id"))
+    action_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broker.action_requests.id"))
+    baseline_decision: Mapped[str] = mapped_column(Text)
+    candidate_decision: Mapped[str] = mapped_column(Text)
+    baseline_reason_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    candidate_reason_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    changed: Mapped[bool] = mapped_column(Boolean)

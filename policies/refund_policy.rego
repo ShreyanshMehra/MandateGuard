@@ -24,7 +24,12 @@ default decision := {
 	},
 }
 
-config := data.mandateguard.config
+# Shadow replay (Milestone 5) passes a candidate configuration via
+# input.override_config so it can compare decisions without mutating the
+# live bundled data document that every other request evaluates against.
+config := input.override_config if {
+	is_object(input.override_config)
+} else := data.mandateguard.config
 
 deny_obligations := {
 	"reserve_budget": false,

@@ -6,7 +6,7 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 4 — Financial correctness and enforcement**
+**Milestone 5 — Governance workflows**
 
 Status: complete, pending final commit
 
@@ -45,15 +45,21 @@ Status: complete, pending final commit
 - [x] `POST /internal/v1/refunds` on the mock bank: requires the broker service token *and* a valid unexpired permit whose claims match the request body; applies the refund atomically under a payment row lock; rejects a reused permit JTI via a unique constraint on `bank.refunds.permit_jti` (mapped to a clean 409, not a 500); returns an Ed25519-signed result document. `GET /internal/v1/refunds/{request_id}` supports manual reconciliation of `UNKNOWN` outcomes.
 - [x] `POST /api/v1/refunds` extended: for an ALLOW decision, reserves budget, issues a permit, calls the mock bank, and verifies the signed result -- each step its own short transaction (invariant: no DB transaction open during the OPA or mock-bank HTTP call). Outcomes: `SUCCEEDED` (reservation `COMMITTED`, permit `CONSUMED`, signed `execution_receipts` row written), `FAILED` (reservation `RELEASED`, permit `CANCELLED`), or `UNKNOWN` (reservation stays `UNKNOWN`, still consuming budget, pending manual reconciliation -- never retried blindly). A `BudgetExceededError` short-circuits straight to a `DENY`/`BUDGET_EXCEEDED_{SCOPE}` action.
 - [x] `tests/test_budget_execution.py` (5 tests, all passing): real execution + settlement against the mock bank; a concurrent burst against a shared fleet/payment headroom that always lands exactly the expected number of successes and never overshoots; and three direct-to-mock-bank probes (run inside the broker container, since mock-bank is not published to the host) proving a missing permit, a tampered permit claim and a replayed permit JTI are all rejected without a second refund.
-- [x] `scripts/reset_dev_state.sql`: resets bank balances, budget/permit/receipt tables and audit streams to the freshly-seeded baseline, since Milestone 4 execution -- unlike Milestone 3's no-op ALLOW path -- actually mutates balances and consumes budget, so repeated local test runs need a reset between them.
+- [x] `scripts/reset_dev_state.sql`: resets bank balances, budget/permit/receipt tables and audit streams to the freshly-seeded baseline, since Milestone 4 execution -- unlike Milestone 3's no-op ALLOW path -- actually mutates balances and consumes budget, so repeated local test runs need a reset between them. Extended in Milestone 5 to also restore each agent's originally-seeded status/epoch (not blanket-ACTIVE, since `revoked-demo-agent-v1` is seeded REVOKED on purpose) and reset `governance_state` to `RUNNING`/`NORMAL`/epoch 0.
+- [x] Migration `0005`: `control_actions`, `approvals`, `audit_checkpoints`, `audit_checkpoint_items`, `policy_replay_runs`, `policy_replay_results` (broker schema).
+- [x] `services/broker/app/controls.py`: idempotent (caller-supplied `Idempotency-Key`) agent revoke/restore and fleet halt/resume/risk-mode changes, each bumping the relevant monotonic epoch (`agents.epoch` or `governance_state.epoch`) only when something actually changed, recording a before/after snapshot in `control_actions`, and appending a hash-chained audit event.
+- [x] `POST/GET /api/v1/admin/actions/{id}/approve|deny`: held-action approval/denial with re-evaluation. Compares the action's held-time `control_epoch_snapshot`/`agent_epoch_snapshot` against current epochs first -- a mismatch (agent revoked, or fleet halted/resumed/risk-changed since the hold) fails the approval closed with `STALE_CONTEXT_RECHECK_REQUIRED` rather than executing against a stale context. Otherwise re-runs OPA (`phase=APPROVAL_RECHECK`); a DENY recheck outcome always wins over the operator's approval (hard limits, revocation, scope), while a HOLD recheck outcome (the amount-threshold condition the approval exists to satisfy) proceeds into the same budget-reserve/permit-issue/bank-execute pipeline Milestone 4 built.
+- [x] `services/broker/app/checkpoints.py`: signs a manifest of every audit stream's `(last_sequence, last_event_hash)` with a dedicated Ed25519 dev key (`secrets/dev/audit-checkpoint-signing__...pem`, gitignored) and verifies it by replaying each stream's event chain from scratch and recomputing every event's hash, detecting any edit or deletion of a historical `audit_events` row relative to the checkpoint.
+- [x] `services/broker/app/replay.py` + a new `input.override_config` field in `policies/refund_policy.rego` (falls back to the live bundled config when absent): read-only candidate-policy shadow replay that re-evaluates each historical action's exact stored OPA input against a candidate config using the real Rego rules, writing only to dedicated `policy_replay_runs`/`policy_replay_results` tables -- never touching `action_requests` or creating reservations, permits, refunds or live audit events.
+- [x] `tests/test_governance_workflows.py` (8 tests, all passing): epoch bump on revoke/restore, held-action approve-to-execution and deny, stale-context rejection after a control change mid-approval, fleet halt denying new requests and resume restoring them, audit checkpoint tamper detection via a direct SQL edit to a historical event, and read-only replay that changes a held action's decision under a permissive candidate config while leaving the live action's state untouched.
 
 ## In progress
 
-- [ ] Nothing in progress; ready to start Milestone 5.
+- [ ] Nothing in progress; ready to start Milestone 6.
 
 ## Next actions
 
-1. Milestone 5: held-action approval/denial with re-evaluation, agent revoke/restore and risk/halt/resume with epoch increments, per-stream hash-chained audit is already in place from Milestone 3 -- add signed exported checkpoints, and candidate policy config with shadow replay, approval, activation and rollback.
+1. Milestone 6: React dashboard (fleet status/emergency controls, live action feed, exposure views, held approvals, agent details, policy replay comparison, receipt search/export/verification) and the deterministic demo scenario runner.
 2. Continue committing and pushing to `origin/main` at each milestone boundary.
 
 ## Current blockers
@@ -94,3 +100,7 @@ Status: complete, pending final commit
 | 2026-07-27 | `alembic upgrade head` via `migrate` Compose service (migrations 0003, 0004) | Pass — budget/permit/execution tables created, `payment-demo-004` seeded |
 | 2026-07-27 | Manual smoke test: `POST /api/v1/refunds` for an ALLOW-eligible amount | Pass — `status: SUCCEEDED`, bank balance decremented, signed refund recorded in `bank.refunds` |
 | 2026-07-27 | `pytest tests/` (both suites) against the live stack, after `scripts/reset_dev_state.sql` | Pass — `23 passed` |
+| 2026-07-27 | OPA strict check, format check and policy tests after `override_config` change | Pass — OPA 1.17, `PASS: 22/22` |
+| 2026-07-27 | `alembic upgrade head` via `migrate` Compose service (migration 0005) | Pass — control/approval/checkpoint/replay tables created |
+| 2026-07-27 | `pytest tests/test_governance_workflows.py -v` against the live stack, after reset | Pass — `8 passed` |
+| 2026-07-27 | `pytest tests/` (all three suites) against the live stack, after reset | Pass — `30 passed, 1 skipped` (the skip is the concurrency-headroom-dependent approval test, which needs the fleet budget headroom that `test_budget_execution.py`'s concurrency burst consumes earlier in the same run -- it passes `8/8` when `test_governance_workflows.py` is run alone after a reset) |
