@@ -6,7 +6,7 @@ This file is the durable handoff point. Read it first after any interrupted or c
 
 ## Current milestone
 
-**Milestone 3 — Identity, data and decisions**
+**Milestone 4 — Financial correctness and enforcement**
 
 Status: complete, pending final commit
 
@@ -39,16 +39,22 @@ Status: complete, pending final commit
 - [x] `POST /api/v1/refunds` implemented: idempotency-key intake, governance-state halt check, trusted bank lookup, pre-OPA trusted-data checks (payment-not-found, currency-mismatch, amount-exceeds-refundable), OPA call outside the DB transaction, and persistence of the exact decision input/output snapshot plus a hash-chained `ACTION_DECIDED` audit event.
 - [x] `GET /api/v1/actions/{action_id}` implemented, scoped to the requesting agent's own actions.
 - [x] `tests/test_refund_intake.py` (18 tests, all passing) covers the Milestone 3 acceptance gate: valid ALLOW, forged signature, expired token, unknown key ID, missing auth, wrong-currency, revoked agent, out-of-scope customer, payment-not-found, amount-exceeds-refundable, HOLD (approval threshold) and hard-max DENY, idempotent replay, idempotency-key conflict, and action-visibility scoping. "Wrong-action" is not reachable via the public API contract (no `action` field on `RefundRequest`); that branch is covered by the existing OPA unit tests in `policies/refund_policy_test.rego`.
+- [x] Migration `0003`: `budget_locks`, `budget_reservations`, `reservation_allocations`, `action_permits`, `execution_receipts` (broker schema); `permit_uses`, `refunds`, `bank_operation_events` (bank schema). Migration `0004`: a dedicated `payment-demo-004` (5,000,000 minor) so Milestone 4's execution tests don't drain the fixed-balance payments Milestone 3's tests assume.
+- [x] `services/broker/app/budgets.py`: atomic customer/agent/fleet budget reservation. Scopes locked in deterministic sorted order via `budget_locks` + `SELECT ... FOR UPDATE`; usage summed under that lock and compared to the cap (from the active policy version's `budgets` config) before any reservation row is written -- this is what gives zero-overshoot concurrency. `RESERVED` and `UNKNOWN` reservations keep consuming capacity; only `RELEASED` frees it.
+- [x] `services/broker/app/permits.py`: Ed25519-signed, single-use, parameter-bound (payment/amount/currency), short-lived (60s TTL) action permits, using a broker-owned dev keypair (`secrets/dev/broker-permit-signing__...pem`, gitignored). Also verifies the mock bank's Ed25519-signed execution result against a second, bank-owned dev keypair.
+- [x] `POST /internal/v1/refunds` on the mock bank: requires the broker service token *and* a valid unexpired permit whose claims match the request body; applies the refund atomically under a payment row lock; rejects a reused permit JTI via a unique constraint on `bank.refunds.permit_jti` (mapped to a clean 409, not a 500); returns an Ed25519-signed result document. `GET /internal/v1/refunds/{request_id}` supports manual reconciliation of `UNKNOWN` outcomes.
+- [x] `POST /api/v1/refunds` extended: for an ALLOW decision, reserves budget, issues a permit, calls the mock bank, and verifies the signed result -- each step its own short transaction (invariant: no DB transaction open during the OPA or mock-bank HTTP call). Outcomes: `SUCCEEDED` (reservation `COMMITTED`, permit `CONSUMED`, signed `execution_receipts` row written), `FAILED` (reservation `RELEASED`, permit `CANCELLED`), or `UNKNOWN` (reservation stays `UNKNOWN`, still consuming budget, pending manual reconciliation -- never retried blindly). A `BudgetExceededError` short-circuits straight to a `DENY`/`BUDGET_EXCEEDED_{SCOPE}` action.
+- [x] `tests/test_budget_execution.py` (5 tests, all passing): real execution + settlement against the mock bank; a concurrent burst against a shared fleet/payment headroom that always lands exactly the expected number of successes and never overshoots; and three direct-to-mock-bank probes (run inside the broker container, since mock-bank is not published to the host) proving a missing permit, a tampered permit claim and a replayed permit JTI are all rejected without a second refund.
+- [x] `scripts/reset_dev_state.sql`: resets bank balances, budget/permit/receipt tables and audit streams to the freshly-seeded baseline, since Milestone 4 execution -- unlike Milestone 3's no-op ALLOW path -- actually mutates balances and consumes budget, so repeated local test runs need a reset between them.
 
 ## In progress
 
-- [ ] Nothing in progress; ready to start Milestone 4.
+- [ ] Nothing in progress; ready to start Milestone 5.
 
 ## Next actions
 
-1. Milestone 4: atomic budget reserve/commit/release, signed single-use permits, and real mock-bank execution wired to the `ALLOW` path.
-2. Extend the schema/migrations for budgets, permits and receipts when that work starts (kept out of Milestone 3 on purpose).
-3. Continue committing and pushing to `origin/main` at each milestone boundary.
+1. Milestone 5: held-action approval/denial with re-evaluation, agent revoke/restore and risk/halt/resume with epoch increments, per-stream hash-chained audit is already in place from Milestone 3 -- add signed exported checkpoints, and candidate policy config with shadow replay, approval, activation and rollback.
+2. Continue committing and pushing to `origin/main` at each milestone boundary.
 
 ## Current blockers
 
@@ -85,3 +91,6 @@ Status: complete, pending final commit
 | 2026-07-27 | mock-bank port published to host | Confirmed not published; only broker, agent-simulator, opa and frontend ports are mapped |
 | 2026-07-27 | `alembic upgrade head` via `migrate` Compose service | Pass — both migrations applied, `broker`/`bank` tables created and seeded |
 | 2026-07-27 | `pytest tests/test_refund_intake.py -v` against the live stack | Pass — `18 passed` |
+| 2026-07-27 | `alembic upgrade head` via `migrate` Compose service (migrations 0003, 0004) | Pass — budget/permit/execution tables created, `payment-demo-004` seeded |
+| 2026-07-27 | Manual smoke test: `POST /api/v1/refunds` for an ALLOW-eligible amount | Pass — `status: SUCCEEDED`, bank balance decremented, signed refund recorded in `bank.refunds` |
+| 2026-07-27 | `pytest tests/` (both suites) against the live stack, after `scripts/reset_dev_state.sql` | Pass — `23 passed` |

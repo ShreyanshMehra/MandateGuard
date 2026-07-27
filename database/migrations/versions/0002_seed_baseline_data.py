@@ -86,7 +86,7 @@ def upgrade() -> None:
                 (version_number, base_version_number, checksum, status, config, created_by, approved_by, approved_at)
             VALUES
                 (:version_number, NULL, :checksum, 'ACTIVE', CAST(:config AS JSONB), 'seed-migration', 'seed-migration', now())
-            ON CONFLICT (version_number) DO UPDATE SET checksum = EXCLUDED.checksum
+            ON CONFLICT (version_number) DO UPDATE SET checksum = EXCLUDED.checksum, config = EXCLUDED.config
             RETURNING id
             """
         ),

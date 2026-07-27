@@ -11,6 +11,47 @@ class MockBankUnavailableError(Exception):
     pass
 
 
+class BankExecutionOutcome:
+    """Result of calling the mock bank's refund execution endpoint.
+
+    status is one of SUCCEEDED, FAILED or UNKNOWN. UNKNOWN means the broker
+    cannot determine whether the bank applied the refund (transport error,
+    5xx, or a response whose signature failed verification) -- per
+    docs/DATA_MODEL.md invariant 6, budgets must keep treating it as
+    consuming capacity until reconciled, and it must never be retried
+    blindly (invariant 10)."""
+
+    def __init__(self, status: str, document: dict | None, signature_b64: str | None, key_id: str | None):
+        self.status = status
+        self.document = document
+        self.signature_b64 = signature_b64
+        self.key_id = key_id
+
+
+def execute_bank_refund(*, request_id: str, payment_id: str, amount_minor: int, currency: str, permit_token: str) -> BankExecutionOutcome:
+    try:
+        response = httpx.post(
+            f"{MOCK_BANK_URL}/internal/v1/refunds",
+            headers={"X-Broker-Service-Token": BROKER_SERVICE_TOKEN, "X-Action-Permit": permit_token},
+            json={
+                "request_id": request_id,
+                "payment_id": payment_id,
+                "amount_minor": amount_minor,
+                "currency": currency,
+            },
+            timeout=5.0,
+        )
+    except httpx.HTTPError:
+        return BankExecutionOutcome("UNKNOWN", None, None, None)
+
+    if response.status_code == 200:
+        body = response.json()
+        return BankExecutionOutcome("SUCCEEDED", body["document"], body["signature_b64"], body["key_id"])
+    if response.status_code in (401, 404, 409, 422):
+        return BankExecutionOutcome("FAILED", None, None, None)
+    return BankExecutionOutcome("UNKNOWN", None, None, None)
+
+
 def evaluate_refund_policy(input_doc: dict) -> dict:
     """Calls OPA outside of any database transaction (docs/DATA_MODEL.md
     "Transaction rule"). Raises OpaUnavailableError on any failure so the

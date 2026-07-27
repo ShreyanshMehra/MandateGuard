@@ -12,13 +12,14 @@ class GovernanceSnapshot:
     epoch: int
     policy_version_id: UUID
     policy_version_number: int
+    config: dict
 
 
 def fetch_governance_snapshot(session: Session) -> GovernanceSnapshot:
     row = session.execute(
         text(
             """
-            SELECT gs.run_state, gs.risk_mode, gs.epoch, pv.id AS policy_version_id, pv.version_number
+            SELECT gs.run_state, gs.risk_mode, gs.epoch, pv.id AS policy_version_id, pv.version_number, pv.config
             FROM broker.governance_state gs
             JOIN broker.policy_versions pv ON pv.id = gs.active_policy_version_id
             WHERE gs.id = true
@@ -31,4 +32,5 @@ def fetch_governance_snapshot(session: Session) -> GovernanceSnapshot:
         epoch=row.epoch,
         policy_version_id=row.policy_version_id,
         policy_version_number=row.version_number,
+        config=row.config["mandateguard"]["config"],
     )

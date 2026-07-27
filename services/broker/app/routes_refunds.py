@@ -1,10 +1,12 @@
-"""Refund action intake (Milestone 3 scope).
+"""Refund action intake and execution (Milestones 3 and 4).
 
-Implements the allowed-request sequence from docs/ARCHITECTURE.md up through
-"ask OPA for the decision" and "persist all lifecycle events" (steps 1-8 and
-15). Budget reservation, permit issuance and bank execution (steps 9-14) are
-added in Milestone 4 -- an ALLOW decision here is persisted with the action
-left in the RECEIVED state, decision=ALLOW, pending that work.
+Implements the full allowed-request sequence from docs/ARCHITECTURE.md:
+identity, policy decision and persistence (steps 1-8), then -- for ALLOW
+decisions only -- atomic budget reservation, signed permit issuance, bank
+execution and outcome finalization (steps 9-15). Each step after the
+initial decision commit is its own short transaction so no database
+transaction is ever open during the OPA or mock-bank HTTP calls
+(docs/DATA_MODEL.md "Transaction rule").
 """
 
 import hashlib
@@ -18,11 +20,19 @@ from sqlalchemy.orm import Session
 
 from . import config
 from .audit import append_audit_event
-from .clients import MockBankUnavailableError, OpaUnavailableError, evaluate_refund_policy, fetch_trusted_payment
+from .budgets import BudgetExceededError, reserve_budget
+from .clients import (
+    MockBankUnavailableError,
+    OpaUnavailableError,
+    evaluate_refund_policy,
+    execute_bank_refund,
+    fetch_trusted_payment,
+)
 from .db import get_session
 from .errors import api_error
-from .governance import fetch_governance_snapshot
-from .models import ActionRequest, Agent, PolicyEvaluation
+from .governance import GovernanceSnapshot, fetch_governance_snapshot
+from .models import ActionRequest, Agent, ExecutionReceipt, PolicyEvaluation
+from .permits import issue_permit, verify_bank_result
 from .schemas import ActionResponse, RefundRequest
 from .security import extract_bearer_token, verify_agent_token
 
@@ -42,6 +52,121 @@ def _to_response(action: ActionRequest) -> ActionResponse:
         reason_code=action.public_reason_code,
         public_explanation=action.operator_explanation,
     )
+
+
+def _process_execution(session: Session, action: ActionRequest, agent: Agent, governance: GovernanceSnapshot) -> None:
+    """Budget reservation through bank execution for an ALLOW-decided action.
+    Mutates and repeatedly commits `action` in place; each step is its own
+    short transaction (invariant 16). Idempotent replays never reach this
+    function a second time -- they return the already-decided action before
+    the caller commits, so no reservation/permit/refund is created twice."""
+    try:
+        reservation = reserve_budget(
+            session,
+            action_id=action.id,
+            agent_token_subject=agent.token_subject,
+            customer_id=action.customer_id,
+            amount_minor=action.amount_minor,
+            currency=action.currency,
+            config=governance.config,
+        )
+    except BudgetExceededError as exc:
+        action.state = "DENIED"
+        action.decision = "DENY"
+        action.public_reason_code = f"BUDGET_EXCEEDED_{exc.scope.upper()}"
+        action.operator_explanation = f"The {exc.scope} budget cap would be exceeded by this refund."
+        append_audit_event(
+            session, stream_id=f"action:{action.id}", event_type="BUDGET_DENIED",
+            actor="system:budget", correlation_id=action.id, payload={"scope": exc.scope},
+        )
+        session.commit()
+        return
+
+    action.state = "BUDGET_RESERVED"
+    append_audit_event(
+        session, stream_id=f"action:{action.id}", event_type="BUDGET_RESERVED",
+        actor="system:budget", correlation_id=action.id,
+        payload={"reservation_id": str(reservation.id), "amount_minor": reservation.amount_minor},
+    )
+    session.commit()
+
+    permit, permit_token = issue_permit(
+        action_id=action.id,
+        reservation_id=reservation.id,
+        payment_id=action.payment_id,
+        amount_minor=action.amount_minor,
+        currency=action.currency,
+        attempt_number=1,
+        policy_version_id=action.policy_version_id,
+        control_epoch_snapshot=action.control_epoch_snapshot,
+        agent_epoch_snapshot=action.agent_epoch_snapshot,
+    )
+    session.add(permit)
+    action.state = "PERMIT_ISSUED"
+    append_audit_event(
+        session, stream_id=f"action:{action.id}", event_type="PERMIT_ISSUED",
+        actor="system:permit", correlation_id=action.id, payload={"jti": permit.jti},
+    )
+    action.state = "EXECUTING"
+    session.commit()
+
+    outcome = execute_bank_refund(
+        request_id=str(action.id),
+        payment_id=action.payment_id,
+        amount_minor=action.amount_minor,
+        currency=action.currency,
+        permit_token=permit_token,
+    )
+
+    verified = outcome.status == "SUCCEEDED" and outcome.document is not None and outcome.document.get(
+        "permit_jti"
+    ) == permit.jti and verify_bank_result(outcome.document, outcome.signature_b64)
+
+    if verified:
+        reservation.state = "COMMITTED"
+        permit.status = "CONSUMED"
+        action.state = "SUCCEEDED"
+        document_hash = hashlib.sha256(
+            json.dumps(outcome.document, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        session.add(
+            ExecutionReceipt(
+                id=uuid.uuid4(),
+                action_id=action.id,
+                document=outcome.document,
+                document_hash=document_hash,
+                signature_b64=outcome.signature_b64,
+                key_id=outcome.key_id,
+                schema_version="1.0",
+            )
+        )
+        append_audit_event(
+            session, stream_id=f"action:{action.id}", event_type="EXECUTION_SUCCEEDED",
+            actor="system:execution", correlation_id=action.id,
+            payload={"bank_transaction_id": outcome.document["bank_transaction_id"]},
+        )
+    elif outcome.status == "FAILED":
+        reservation.state = "RELEASED"
+        reservation.resolution_reason = "EXECUTION_FAILED"
+        permit.status = "CANCELLED"
+        action.state = "FAILED"
+        append_audit_event(
+            session, stream_id=f"action:{action.id}", event_type="EXECUTION_FAILED",
+            actor="system:execution", correlation_id=action.id, payload={},
+        )
+    else:
+        # UNKNOWN, or a SUCCEEDED response that failed signature/claim
+        # verification -- the broker cannot trust it, so the reservation
+        # keeps consuming capacity (invariant 6) pending manual reconciliation.
+        reservation.state = "UNKNOWN"
+        action.state = "UNKNOWN"
+        append_audit_event(
+            session, stream_id=f"action:{action.id}", event_type="EXECUTION_UNKNOWN",
+            actor="system:execution", correlation_id=action.id,
+            payload={"reason": "BANK_RESULT_UNVERIFIED" if outcome.status == "SUCCEEDED" else "BANK_UNREACHABLE"},
+        )
+
+    session.commit()
 
 
 @router.post("/api/v1/refunds", response_model=ActionResponse, status_code=201)
@@ -219,6 +344,10 @@ def create_refund(
     )
 
     session.commit()
+
+    if decision_outcome == "ALLOW":
+        _process_execution(session, action, agent, governance)
+
     return _to_response(action)
 
 
@@ -245,3 +374,35 @@ def get_action(
         raise api_error(404, "ACTION_NOT_FOUND", "No action with that ID.")
 
     return _to_response(action)
+
+
+@router.get("/internal/v1/budget-usage/{scope}/{scope_id}")
+def get_budget_usage(scope: str, scope_id: str, session: Session = Depends(get_session)) -> dict:
+    """Dev/test introspection only: current committed+reserved usage for a
+    budget scope today, and the configured cap. Not part of the product
+    surface (no operator auth); used by the Milestone 4 concurrency test to
+    compute headroom so the acceptance run stays deterministic across
+    repeated local runs instead of assuming a pristine budget window."""
+    from datetime import datetime, timezone
+
+    from .budgets import scope_usage_minor
+
+    governance = fetch_governance_snapshot(session)
+    budgets = governance.config["budgets"]
+    cap_key = {"customer": "customer_daily_cap_minor", "agent": "agent_daily_cap_minor", "fleet": "fleet_daily_cap_minor"}[scope]
+    currency = "USD"
+    window_start = datetime.now(timezone.utc).date()
+    usage = scope_usage_minor(session, scope, scope_id, window_start, currency)
+    return {"scope": scope, "scope_id": scope_id, "usage_minor": usage, "cap_minor": budgets[cap_key]}
+
+
+@router.get("/internal/v1/payment-balance/{payment_id}")
+def get_payment_balance(payment_id: str) -> dict:
+    """Dev/test introspection only, mirroring get_budget_usage above: lets the
+    Milestone 4 concurrency test bound its request amount by the live
+    refundable balance as well as fleet budget headroom, since both are real
+    caps a burst of concurrent requests can legitimately hit."""
+    payment = fetch_trusted_payment(payment_id)
+    if payment is None:
+        raise api_error(404, "PAYMENT_NOT_FOUND", "No payment with that ID.")
+    return payment

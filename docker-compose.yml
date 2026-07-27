@@ -49,6 +49,12 @@ services:
       MOCK_BANK_URL: http://mock-bank:8000
       BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-dev_broker_service_token_change_me}
       MAX_AGENT_TOKEN_TTL_SECONDS: "300"
+      BROKER_PERMIT_KEY_PATH: /secrets/dev/broker-permit-signing__broker-permit-signing_dev-2026-07.pem
+      BROKER_PERMIT_KEY_ID: broker-permit-signing:dev-2026-07
+      BANK_RESULT_PUBLIC_KEY_B64: ${BANK_RESULT_PUBLIC_KEY_B64:-ZL8O0Hf9/VmFthp2cu+wP/vgrNOUXmicT/dZMMrHN+g=}
+      PERMIT_TTL_SECONDS: "60"
+    volumes:
+      - ./secrets/dev:/secrets/dev:ro
     ports:
       - "8000:8000"
     depends_on:
@@ -73,6 +79,11 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://mandateguard_bank:${BANK_DB_PASSWORD:-dev_bank_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
       BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-dev_broker_service_token_change_me}
+      BANK_RESULT_KEY_PATH: /secrets/dev/bank-result-signing__bank-result-signing_dev-2026-07.pem
+      BANK_RESULT_KEY_ID: bank-result-signing:dev-2026-07
+      BROKER_PERMIT_PUBLIC_KEY_B64: ${BROKER_PERMIT_PUBLIC_KEY_B64:-xCi3eN4vtw0KuhpDjQhgq0zdy3jfGXHOUuiGhaHxou0=}
+    volumes:
+      - ./secrets/dev:/secrets/dev:ro
     depends_on:
       postgres:
         condition: service_healthy

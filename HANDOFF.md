@@ -66,6 +66,7 @@ Temporary product name: **MandateGuard**.
 - Docker engine startup verification
 - Runnable Docker Compose scaffold with health/readiness checks (Milestone 2)
 - Database migrations, seeded identity/policy/payment data, agent token verification and audited `POST /api/v1/refunds` intake (Milestone 3)
+- Atomic budget reservation, Ed25519 action permits and permit-gated, signature-verified mock-bank execution (Milestone 4)
 
 The OPA/Rego rule engine is implemented under `policies/`. It was independently reviewed and verified with OPA 1.17 using strict compilation, formatting validation and `PASS: 22/22` policy tests.
 
@@ -73,14 +74,14 @@ Milestone 2 (runnable service scaffold) is complete: `docker-compose.yml` wires 
 
 Milestone 3 (identity, data and decisions) is complete: Alembic migrations create the broker/bank tables needed for identity, policy and action intake (budget, permit, receipt, approval, control-action and checkpoint tables are deliberately deferred to the milestones that implement them, per `docs/DATA_MODEL.md`); a baseline seed loads governance state, demo agents/keys, `policy_config.json` as `policy_versions` version 1, and demo payments; `POST /api/v1/refunds` verifies a signed, short-lived Ed25519 agent token, fetches trusted payment/customer context from the mock bank, calls OPA outside the DB transaction, and persists the exact decision input/output plus a hash-chained audit event. All 18 acceptance tests in `tests/test_refund_intake.py` pass, covering valid/forged/expired/unknown-key/missing-auth tokens, wrong-currency, revoked-agent, out-of-scope-customer, payment-not-found, amount-exceeds-refundable, HOLD (approval threshold) and hard-max DENY, idempotent replay and conflict, and `GET /api/v1/actions/{id}` scoping. See `STATUS.md` for the verification log.
 
+Milestone 4 (financial correctness and enforcement) is complete: `budget_locks`/`budget_reservations`/`reservation_allocations` reserve customer, agent and fleet amount budgets atomically (sorted `FOR UPDATE` locking, all-or-nothing, caps read from the active policy version's config); an ALLOW decision issues a short-lived, single-use, parameter-bound Ed25519 `action_permits` token (`services/broker/app/permits.py`); the mock bank's `POST /internal/v1/refunds` only accepts the broker's service credential plus a valid unexpired permit whose claims match the request, applies the refund atomically under a row lock, and returns an Ed25519-signed result the broker verifies before trusting it; outcomes commit/release/mark-`UNKNOWN` the reservation and consume/cancel the permit accordingly, with a signed `execution_receipts` document on success. Every step after the initial decision commit (budget reserve, permit issue, bank call, finalize) is its own short transaction, so no DB transaction is ever open during the OPA or mock-bank HTTP call. All 5 tests in `tests/test_budget_execution.py` pass: real execution and settlement, zero-overshoot concurrent bursts against a shared budget, and direct-to-bank probes for missing/tampered/replayed permits. `tests/test_refund_intake.py`'s 18 Milestone 3 tests still pass unmodified in substance (two status assertions updated since ALLOW now runs to completion instead of stopping at `RECEIVED`). Both suites require a dev-state reset between runs since execution now mutates real balances -- see `scripts/reset_dev_state.sql`. Scope reductions, documented and deliberate: velocity/count limits and `policy_limits`-table-driven caps are deferred to Milestone 5; caps are read directly from policy config instead. No background reconciliation loop -- `UNKNOWN` outcomes are left for manual reconciliation (the mock bank's `GET /internal/v1/refunds/{request_id}` supports it) rather than an automatic retry loop, to avoid ever double-refunding blindly.
+
 ### In progress
 
-- Nothing in progress; ready to start Milestone 4.
+- Nothing in progress; ready to start Milestone 5.
 
 ### Not started
 
-- Atomic budgets
-- Signed permits and bank-signed outcomes
 - Approval and emergency-control workflows
 - Tamper-evident receipt generation
 - Policy shadow replay

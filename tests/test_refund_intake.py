@@ -10,6 +10,13 @@ endpoint can express); that branch of the policy is covered instead by
 policies/refund_policy_test.rego's unpermitted_action / unsupported_action
 cases.
 
+Since Milestone 4, ALLOW decisions actually execute against the mock bank and
+consume budget, so re-running this suite (or tests/test_budget_execution.py)
+without resetting first will see shrunk balances. Reset before each run:
+
+    docker cp scripts/reset_dev_state.sql mandateguard-postgres-1:/tmp/reset_dev_state.sql
+    docker compose exec -T postgres psql -U mandateguard_admin -d mandateguard -f /tmp/reset_dev_state.sql
+
 Usage: BROKER_URL=http://localhost:8000 pytest tests/test_refund_intake.py
 """
 
@@ -104,7 +111,7 @@ def test_valid_request_is_allowed(client: httpx.Client, refund_agent_token: str)
     data = resp.json()
     assert data["decision"] == "ALLOW"
     assert data["reason_code"] == "REQUEST_ALLOWED"
-    assert data["status"] == "RECEIVED"
+    assert data["status"] == "SUCCEEDED"
 
 
 def test_idempotent_replay_returns_same_action(client: httpx.Client, refund_agent_token: str) -> None:

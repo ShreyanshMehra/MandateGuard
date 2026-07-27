@@ -7,6 +7,12 @@
       "supported_currency": "USD",
       "approval_role": "REFUND_APPROVER",
       "fleet_budget_scope": "refund-fleet",
+      "budgets": {
+        "window": "daily",
+        "customer_daily_cap_minor": 100000000,
+        "agent_daily_cap_minor": 100000000,
+        "fleet_daily_cap_minor": 500000
+      },
       "risk_modes": {
         "NORMAL": {
           "approval_threshold_minor": 25000,
