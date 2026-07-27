@@ -1,23 +1,31 @@
-"""MandateGuard broker service.
+"""MandateGuard broker service."""
 
-Milestone 2 scope: process and dependency health only. Identity, policy
-intake, budgets, permits and execution are added in later milestones per
-HANDOFF.md.
-"""
-
-import os
+import uuid
 
 import httpx
-from fastapi import FastAPI, Response
-from sqlalchemy import create_engine, text
+from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
+from .config import OPA_URL
+from .db import engine
+from .routes_refunds import router as refunds_router
 
 SERVICE_NAME = "broker"
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-OPA_URL = os.environ.get("OPA_URL", "http://opa:8181")
 
 app = FastAPI(title="MandateGuard Broker")
+app.include_router(refunds_router)
 
-_engine = create_engine(DATABASE_URL, pool_pre_ping=True) if DATABASE_URL else None
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": "HTTP_ERROR", "message": str(exc.detail), "correlation_id": str(uuid.uuid4())}},
+    )
 
 
 @app.get("/health")
@@ -34,10 +42,10 @@ def ready(response: Response) -> dict:
 
 
 def _check_database() -> bool:
-    if _engine is None:
+    if engine is None:
         return False
     try:
-        with _engine.connect() as conn:
+        with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
     except Exception:

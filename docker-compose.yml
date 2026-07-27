@@ -26,6 +26,17 @@ services:
     ports:
       - "8181:8181"
 
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/migrate.Dockerfile
+    environment:
+      ADMIN_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-mandateguard_admin}:${POSTGRES_PASSWORD:-dev_admin_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   broker:
     build:
       context: .
@@ -35,6 +46,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://mandateguard_broker:${BROKER_DB_PASSWORD:-dev_broker_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
       OPA_URL: http://opa:8181
+      MOCK_BANK_URL: http://mock-bank:8000
+      BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-dev_broker_service_token_change_me}
+      MAX_AGENT_TOKEN_TTL_SECONDS: "300"
     ports:
       - "8000:8000"
     depends_on:
@@ -42,6 +56,8 @@ services:
         condition: service_healthy
       opa:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8000/health')\""]
       interval: 5s
@@ -56,9 +72,12 @@ services:
         SERVICE_DIR: services/mock-bank
     environment:
       DATABASE_URL: postgresql+psycopg://mandateguard_bank:${BANK_DB_PASSWORD:-dev_bank_change_me}@postgres:5432/${POSTGRES_DB:-mandateguard}
+      BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-dev_broker_service_token_change_me}
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:8000/health')\""]
       interval: 5s

@@ -54,6 +54,15 @@
           "customer_scopes": [
             "*"
           ]
+        },
+        "revoked-demo-agent-v1": {
+          "enabled": true,
+          "allowed_actions": [
+            "refund_payment"
+          ],
+          "customer_scopes": [
+            "customer-demo-001"
+          ]
         }
       }
     }

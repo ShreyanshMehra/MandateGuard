@@ -65,19 +65,20 @@ Temporary product name: **MandateGuard**.
 - Local toolchain audit
 - Docker engine startup verification
 - Runnable Docker Compose scaffold with health/readiness checks (Milestone 2)
+- Database migrations, seeded identity/policy/payment data, agent token verification and audited `POST /api/v1/refunds` intake (Milestone 3)
 
 The OPA/Rego rule engine is implemented under `policies/`. It was independently reviewed and verified with OPA 1.17 using strict compilation, formatting validation and `PASS: 22/22` policy tests.
 
 Milestone 2 (runnable service scaffold) is complete: `docker-compose.yml` wires `postgres`, `opa`, `broker`, `mock-bank`, `agent-simulator` and `frontend`; every backend service exposes `/health` and `/ready`; the full stack builds and reaches a healthy state. See `STATUS.md` for verification output.
 
+Milestone 3 (identity, data and decisions) is complete: Alembic migrations create the broker/bank tables needed for identity, policy and action intake (budget, permit, receipt, approval, control-action and checkpoint tables are deliberately deferred to the milestones that implement them, per `docs/DATA_MODEL.md`); a baseline seed loads governance state, demo agents/keys, `policy_config.json` as `policy_versions` version 1, and demo payments; `POST /api/v1/refunds` verifies a signed, short-lived Ed25519 agent token, fetches trusted payment/customer context from the mock bank, calls OPA outside the DB transaction, and persists the exact decision input/output plus a hash-chained audit event. All 18 acceptance tests in `tests/test_refund_intake.py` pass, covering valid/forged/expired/unknown-key/missing-auth tokens, wrong-currency, revoked-agent, out-of-scope-customer, payment-not-found, amount-exceeds-refundable, HOLD (approval threshold) and hard-max DENY, idempotent replay and conflict, and `GET /api/v1/actions/{id}` scoping. See `STATUS.md` for the verification log.
+
 ### In progress
 
-- Milestone 3: database, identity, policy and action intake
+- Nothing in progress; ready to start Milestone 4.
 
 ### Not started
 
-- PostgreSQL schema and migrations (roles/schemas exist; tables do not)
-- Agent/operator authentication
 - Atomic budgets
 - Signed permits and bank-signed outcomes
 - Approval and emergency-control workflows
