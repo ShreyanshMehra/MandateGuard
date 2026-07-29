@@ -6,6 +6,10 @@
 *.key
 /secrets/
 
+# Local-only submission drafts (never pushed)
+/ROUND1_SUBMISSION.md
+/RENDER_SECRETS_LOCAL_ONLY.md
+
 # Python
 __pycache__/
 *.py[cod]

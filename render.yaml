@@ -1,0 +1,120 @@
+# Free-tier deployment blueprint for Render (https://render.com).
+# See DEPLOY.md for the full step-by-step walkthrough -- this file alone is
+# not enough to deploy, because three private key files (permit signing,
+# bank-result signing, audit-checkpoint signing) can't live in git and must
+# be added by hand as Render "Secret Files" after the first Blueprint sync.
+#
+# Topology mirrors docker-compose.yml, adapted for what Render's free plan
+# actually supports:
+#   - ALL FOUR services (opa, mock-bank, broker, frontend) are deployed as
+#     public "web" services. Render's private-service type ("pserv") is not
+#     available on the free plan at all -- only "web" gets a free tier -- so
+#     opa and mock-bank end up with public *.onrender.com URLs too, even
+#     though we never link to them. This is a disclosed, deliberate
+#     relaxation of docs/ARCHITECTURE.md's "mock bank is not exposed to
+#     agent credentials" trust boundary, specific to this free demo
+#     deployment only: the mock bank still refuses every request without
+#     the broker's shared service token AND a valid Ed25519-signed permit
+#     (enforced in application code, unaffected by network reachability),
+#     but network-level isolation of that endpoint is not something the
+#     free tier can provide. The real, fully isolated boundary is what's
+#     verified locally by docker-compose.yml and tests/test_verification.py's
+#     direct-bank-bypass tests -- this deployment is a demo convenience,
+#     not the security posture being claimed.
+#   - postgres -> Render's managed free Postgres (90-day free instance; the
+#     broker/bank schema-role separation from database/init/ is set up once,
+#     manually, per DEPLOY.md, since Render's managed Postgres doesn't run
+#     custom init scripts).
+#   - agent-simulator is intentionally not deployed here -- nothing in the
+#     deployed path (dashboard, scripts/run_scenarios.py) calls it; it's a
+#     standalone traffic generator, not a dependency (see HANDOFF.md).
+#   - the local "migrate" one-off job doesn't exist on Render's free plan,
+#     so the broker runs its own migration on every boot instead
+#     (docker/deploy/start-broker.sh) -- `alembic upgrade head` is idempotent.
+
+databases:
+  - name: mandateguard-db
+    plan: free
+
+services:
+  - type: web
+    name: mandateguard-opa
+    plan: free
+    runtime: docker
+    dockerfilePath: ./docker/deploy/opa.Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8181
+
+  - type: web
+    name: mandateguard-mock-bank
+    plan: free
+    runtime: docker
+    dockerfilePath: ./docker/deploy/mockbank.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: BROKER_SERVICE_TOKEN
+        sync: false
+      - key: BANK_RESULT_KEY_PATH
+        value: /etc/secrets/bank-result-signing.pem
+      - key: BANK_RESULT_KEY_ID
+        value: bank-result-signing:dev-2026-07
+      - key: BROKER_PERMIT_PUBLIC_KEY_B64
+        value: xCi3eN4vtw0KuhpDjQhgq0zdy3jfGXHOUuiGhaHxou0=
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: mandateguard-broker
+    plan: free
+    runtime: docker
+    dockerfilePath: ./docker/deploy/broker.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: OPA_URL
+        value: http://mandateguard-opa:8181
+      - key: MOCK_BANK_URL
+        value: http://mandateguard-mock-bank:8000
+      - key: BROKER_SERVICE_TOKEN
+        sync: false
+      - key: MAX_AGENT_TOKEN_TTL_SECONDS
+        value: "300"
+      - key: BROKER_PERMIT_KEY_PATH
+        value: /etc/secrets/broker-permit-signing.pem
+      - key: BROKER_PERMIT_KEY_ID
+        value: broker-permit-signing:dev-2026-07
+      - key: BANK_RESULT_PUBLIC_KEY_B64
+        value: ZL8O0Hf9/VmFthp2cu+wP/vgrNOUXmicT/dZMMrHN+g=
+      - key: PERMIT_TTL_SECONDS
+        value: "60"
+      - key: OPERATOR_TOKEN
+        sync: false
+      - key: DASHBOARD_ORIGIN
+        value: https://mandateguard-frontend.onrender.com
+      - key: AUDIT_CHECKPOINT_KEY_PATH
+        value: /etc/secrets/audit-checkpoint-signing.pem
+      - key: AUDIT_CHECKPOINT_KEY_ID
+        value: audit-checkpoint-signing:dev-2026-07
+      - key: ADMIN_DATABASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: mandateguard-frontend
+    plan: free
+    runtime: docker
+    dockerfilePath: ./docker/deploy/frontend.Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 5173
+      - key: VITE_BROKER_URL
+        value: https://mandateguard-broker.onrender.com

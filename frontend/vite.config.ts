@@ -13,4 +13,11 @@ export default defineConfig({
       interval: 300,
     },
   },
+  // Free-tier hosts (e.g. Render) put the app behind a platform-owned
+  // hostname the dev server doesn't know in advance; allow it so `vite
+  // preview` can serve the production build there (docker/deploy/frontend.Dockerfile).
+  preview: {
+    host: true,
+    allowedHosts: true,
+  },
 });

@@ -1,6 +1,6 @@
 # MandateGuard -- 90-120 second walkthrough video script
 
-A shot-by-shot storyboard for a deterministic, rehearsable screen recording. Total target: **105 seconds** (fits the 90-120s window with margin for pacing). Record at 1280x900+ so dashboard text stays legible.
+A shot-by-shot storyboard for a deterministic, rehearsable screen recording. Walks the dashboard **tab by tab, in the order a first-time viewer encounters it**: what the operator token is, then Fleet & controls, Live feed, Exposure, Held approvals, Agents, Policy replay, Receipts. Total target: **~115 seconds** (fits the 90-120s window). Record at 1280x900+ so dashboard text stays legible.
 
 ## Before recording
 
@@ -17,19 +17,32 @@ Open `http://localhost:5173/`, enter the operator token, and confirm all seven t
 | Time | Shot | On-screen action | Voiceover (or on-screen caption) |
 |---|---|---|---|
 | 0:00-0:08 | Title card | Static: "MandateGuard — a governance layer for financial AI agents" over the architecture diagram (or the deck's title slide) | "MandateGuard makes sure no AI agent can move money without bounded authority, reserved exposure, and proof." |
-| 0:08-0:20 | Dashboard: Fleet & controls tab | Show governance status (RUNNING/NORMAL), fleet exposure bar | "This is the live operator dashboard. Right now the fleet is running normally, with real budget exposure tracked per customer, agent, and fleet." |
-| 0:20-0:35 | Dashboard: Live feed tab, then submit one refund (via `run_scenarios.py` scenario 1 or the agent simulator) | A normal refund appears in the feed as SUCCEEDED with a receipt | "A legitimate refund request is authenticated, checked against policy, and executed — with a signed receipt, every time." |
-| 0:35-0:50 | Dashboard: Held approvals tab | Trigger a high-value refund (scenario 2), show it land as HELD, click Approve | "A high-value refund is held for a human. Approving it re-checks live policy and current controls before it can execute — never a rubber stamp." |
-| 0:50-1:02 | Terminal: direct-bank bypass probe (scenario 4) | Run the probe, show `401 PERMIT_REQUIRED` | "An agent — or an attacker — cannot call the bank directly. Only the broker holds the service credential and a valid signed permit." |
-| 1:02-1:14 | Dashboard: Fleet & controls tab | Click Halt, then show a new request immediately denied (`FLEET_HALTED`) | "One operator action halts the entire fleet. The very next request is denied — measured in milliseconds, not minutes." |
-| 1:14-1:26 | Dashboard: Exposure tab, then a concurrent burst (scenario 5, via `run_scenarios.py`) | Show the burst result: exactly N succeeded against a shared cap, never more | "Under real concurrent load, budget limits hold exactly — zero overshoot, proven, not assumed." |
-| 1:26-1:38 | Dashboard: Policy replay tab | Load a candidate config, run replay, show the diff table | "Before a policy change goes live, we can replay it against real historical traffic and see exactly what would change — with zero risk to live state." |
-| 1:38-1:45 | Dashboard: Receipts tab | Click Verify on a receipt, show the green VALID pill | "Every completed action has a cryptographically verifiable receipt." |
-| 1:45-1:50 | Closing card | Static: repo URL / project name / "Built and measured, not just claimed." | "MandateGuard: enforcement, not a policy document." |
+| 0:08-0:18 | Dashboard loads; point at the operator token field | Type/paste the operator token in, dashboard unlocks | "Every control action needs an authenticated operator token — this is what proves a human, not the agent, is the one pulling these levers." |
+| 0:18-0:30 | Fleet & controls tab | Show current state: `Run state: RUNNING`, `Risk mode: NORMAL`, control epoch, policy version. Point at the Halt / Resume / Set-risk buttons | "This is fleet-wide command. Right now the fleet is running normally. From here an operator can halt every agent at once, or tighten the risk mode fleet-wide — both take a reason, and both are logged." |
+| 0:30-0:42 | Fleet & controls: click Halt (type a reason first), then immediately trigger one request (simulator/terminal) showing instant `FLEET_HALTED` denial, then Resume | Run state flips to `HALTED`; next request denied; flips back to `RUNNING` | "Watch what halting does: the very next request — from any agent — is denied immediately. This is measured at under 100 milliseconds, not eventually consistent." |
+| 0:42-0:52 | Fleet & controls: click Set risk ELEVATED, then back to NORMAL | Risk mode label changes; briefly show what tightens (lower approval threshold) | "Elevating risk mode fleet-wide tightens the approval threshold immediately — useful the moment something looks off, before you've even identified which agent." |
+| 0:52-1:08 | Live feed tab | Submit a normal refund (simulator or `run_scenarios.py normal_refund`) — appears as ALLOW/SUCCEEDED. Submit a second one that gets denied (e.g. from the revoked demo agent) — appears as DENY with a reason code | "This is where every request lands as it happens. A legitimate refund is checked against policy and the agent's own judgment call is never trusted blindly — here it's authenticated, allowed, and executed. This one's denied outright, with the exact reason code attached — not a black box." |
+| 1:08-1:18 | Exposure tab | Point at fleet/agent/customer budget bars filling toward their caps | "Every allowed refund reserves real budget here — per customer, per agent, and fleet-wide — so limits can't be quietly exceeded even under heavy load." |
+| 1:18-1:32 | Held approvals tab | Trigger a high-value refund that lands HELD, type a reason, click Approve | "A high-value refund doesn't execute automatically — it's held for a human. Approving it re-checks live policy and current controls first, so it's never a rubber stamp." |
+| 1:32-1:42 | Agents tab | Revoke an agent (reason required), show it, then Restore it | "An operator can revoke a single agent's authority instantly — anything that agent tries next is denied, without touching the rest of the fleet." |
+| 1:42-1:52 | Policy replay tab | Paste a candidate config, click Run replay, show the diff table | "Before a policy change goes live, it can be replayed against real historical traffic to see exactly what would change — with zero risk to live state." |
+| 1:52-2:00 | Receipts tab | Click Verify on a receipt, show the green VALID pill | "Every completed action has a cryptographically signed, independently verifiable receipt." |
+| 2:00-2:05 | Closing card | Static: repo URL / project name / "Built and measured, not just claimed." | "MandateGuard: enforcement, not a policy document." |
+
+Running total above is ~125s including the closing card -- see "Trimming to fit 90-120s" below for exactly what to cut to land inside the window.
+
+## Trimming to fit 90-120s
+
+The full walkthrough above runs a little over on a first pass. Cut in this order until you're inside the window:
+
+1. **Drop the risk-mode beat (0:42-0:52)** first -- it's the same "operator lever, immediate effect" point the halt demo (0:30-0:42) already made.
+2. **Drop the Agents-tab revoke (1:32-1:42)** next if still over -- it repeats the "one action, immediate denial" beat from both halt and the Live feed denial.
+3. Everything else is load-bearing for the core thesis: token -> fleet control -> request judged and reasoned -> exposure reserved -> human approval re-checked -> receipt verified.
+
+If you want the strongest possible proof-of-enforcement moment and have room to add one back in: a terminal shot of the direct-bank-bypass probe (`python scripts/run_scenarios.py direct_bypass`, showing `401 PERMIT_REQUIRED`) is the single most convincing 10 seconds in the whole demo -- it proves the agent *cannot* route around the broker, not just that it chooses not to. Slot it right after the Live feed section if you have 10 seconds to spare.
 
 ## Recording tips
 
-- Resume/un-halt the fleet between takes (`scripts/reset_dev_state.sql` does this automatically).
-- If timing runs long, cut the policy-replay shot (1:26-1:38) first -- it's the most skippable without losing the core thesis (identity -> policy -> budget -> permit -> execution -> receipt -> halt).
-- Keep a terminal window pre-positioned for the bypass-probe shot (0:50-1:02) so there's no dead air switching windows; consider running `python scripts/run_scenarios.py direct_bypass` just before recording so the output is fresh in scrollback.
+- Reset dev state between takes (`scripts/reset_dev_state.sql`) so denials/holds/reason codes come out the same way every time.
+- Keep a terminal window pre-positioned and minimized for any terminal-driven moment (halt-denial trigger, revoked-agent request, optional bypass probe) so there's no dead air switching windows.
 - A silent captions-only cut (no voiceover) works too -- burn the "Voiceover" column text in as on-screen captions instead.
